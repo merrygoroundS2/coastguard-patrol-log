@@ -1261,8 +1261,34 @@ function handlePatrolBack() {
 // ═══════════════════════════════════════════
 // PATROL END
 // ═══════════════════════════════════════════
-function renderPatrolEnd() {
-    // Init map
+async function renderPatrolEnd() {
+    // 1. 순찰 목록 캐시를 서버로부터 최신화하여 오늘 생성된 순찰일지도 드롭다운에 노출되도록 보장!
+    try {
+        const resp = await fetch('/api/patrols');
+        const data = await resp.json();
+        if (data.success) {
+            State.allPatrolsCached = data.patrols;
+        }
+    } catch (err) {
+        console.error('순찰 목록 갱신 실패:', err);
+    }
+
+    // 2. 순찰 날짜 표시 업데이트
+    if (State.currentPatrol && State.currentPatrol.date) {
+        const dateLabel = parseDateLabel(State.currentPatrol.date);
+        const label = `${dateLabel} 순찰일지`;
+        const optEnd = $('#patrolEndLogOption');
+        if (optEnd) optEnd.textContent = label;
+    }
+
+    // 3. 드롭다운 채우기 및 이벤트 바인딩 (최신화 완료 후!)
+    renderPatrolLogDropdown();
+
+    // 4. Render summary
+    renderPatrolEndSummary();
+    renderPatrolEndTimeline();
+
+    // 5. Init map (100ms 뒤에 안전하게 렌더링)
     setTimeout(() => {
         if (State.patrolEndMap) {
             State.patrolEndMap.remove();
@@ -1310,21 +1336,6 @@ function renderPatrolEnd() {
             State.patrolEndMap.fitBounds(L.latLngBounds(coords).pad(0.3));
         }
     }, 100);
-
-    // 순찰 날짜 표시 업데이트
-    if (State.currentPatrol && State.currentPatrol.date) {
-        const dateLabel = parseDateLabel(State.currentPatrol.date);
-        const label = `${dateLabel} 순찰일지`;
-        const optEnd = $('#patrolEndLogOption');
-        if (optEnd) optEnd.textContent = label;
-    }
-
-    // 드롭다운 채우기 및 이벤트 바인딩
-    renderPatrolLogDropdown();
-
-    // Render summary
-    renderPatrolEndSummary();
-    renderPatrolEndTimeline();
 }
 
 function renderPatrolLogDropdown() {

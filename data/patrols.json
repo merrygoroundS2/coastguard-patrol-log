@@ -350,5 +350,96 @@
     },
     "createdAt": "2026-06-02T06:08:20.016Z",
     "updatedAt": "2026-06-02T06:08:25.800Z"
+  },
+  {
+    "id": "db296934-c300-4c9b-82ca-caa109354399",
+    "date": "2026-06-02",
+    "members": [
+      "경사 김민준",
+      "순경 박서연"
+    ],
+    "course": "해안1코스",
+    "coursePoints": [
+      {
+        "name": "A구역(인항파출소 및 전용부두)",
+        "lat": 37.4579,
+        "lng": 126.5986
+      },
+      {
+        "name": "C구역(월미도 및 월미산책로)",
+        "lat": 37.472,
+        "lng": 126.596
+      },
+      {
+        "name": "D구역(북성포구 및 만석부두)",
+        "lat": 37.481,
+        "lng": 126.608
+      },
+      {
+        "name": "E구역(화수부두 및 인천내항)",
+        "lat": 37.487,
+        "lng": 126.621
+      }
+    ],
+    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+    "status": "completed",
+    "points": [
+      {
+        "id": "pt-0-1780380677831",
+        "location": "A구역(인항파출소 및 전용부두)",
+        "code": "A",
+        "detail": "인항파출소 및 전용부두",
+        "lat": 37.4579,
+        "lng": 126.5986,
+        "arrivalTime": "15:11",
+        "departureTime": "15:11",
+        "memo": "해안순찰 전 안전교육 실시",
+        "completed": true
+      },
+      {
+        "id": "pt-1-1780380677831",
+        "location": "C구역(월미도 및 월미산책로)",
+        "code": "C",
+        "detail": "월미도 및 월미산책로",
+        "lat": 37.472,
+        "lng": 126.596,
+        "arrivalTime": "15:11",
+        "departureTime": "15:11",
+        "memo": "이상 없음",
+        "completed": true
+      },
+      {
+        "id": "pt-2-1780380677831",
+        "location": "D구역(북성포구 및 만석부두)",
+        "code": "D",
+        "detail": "북성포구 및 만석부두",
+        "lat": 37.481,
+        "lng": 126.608,
+        "arrivalTime": "15:11",
+        "departureTime": "15:11",
+        "memo": "이상 없음",
+        "completed": true
+      },
+      {
+        "id": "pt-3-1780380677831",
+        "location": "E구역(화수부두 및 인천내항)",
+        "code": "E",
+        "detail": "화수부두 및 인천내항",
+        "lat": 37.487,
+        "lng": 126.621,
+        "arrivalTime": "15:11",
+        "departureTime": "15:11",
+        "memo": "이상 없음",
+        "completed": true
+      }
+    ],
+    "summary": {
+      "totalDistance": 4,
+      "totalTime": 2,
+      "patrolMethod": "도보 및 차량",
+      "patrolCount": "4곳"
+    },
+    "createdAt": "2026-06-02T06:11:17.821Z",
+    "updatedAt": "2026-06-02T06:11:22.089Z"
   }
 ]
