@@ -370,13 +370,11 @@ function bindGlobalEvents() {
     // Patrol End
     safeBind('#btnPatrolEndBack', 'click', () => navigateTo('Dashboard'));
     safeBind('#btnPatrolEndToReport', 'click', () => navigateTo('Report'));
-    safeBind('#btnPatrolEndExport', 'click', handleExportReport);
     safeBind('#btnPatrolEndPrint', 'click', handlePrintReportHTML);
     safeBind('#btnEditPatrolDate', 'click', handleEditPatrolDate);
 
     // Report
     safeBind('#btnReportBack', 'click', () => navigateTo('PatrolEnd'));
-    safeBind('#btnExportReport', 'click', handleExportReport);
     safeBind('#btnReportPrint', 'click', handlePrintReportHTML);
 
     // Dashboard View All Toggle
@@ -1665,8 +1663,10 @@ async function handleExportReport() {
     }
 
     const btn = $('#btnExportReport');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading-spinner"></div> 보고서 생성 중...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading-spinner"></div> 보고서 생성 중...';
+    }
 
     try {
         const resp = await fetch(`/api/patrols/${State.currentPatrol.id}/report`, {
@@ -1701,15 +1701,17 @@ async function handleExportReport() {
     } catch (err) {
         showToast(err.message, 'error');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                <polyline points="7 10 12 15 17 10"/>
-                <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            보고서 내보내기
-        `;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                보고서 내보내기
+            `;
+        }
     }
 }
 
