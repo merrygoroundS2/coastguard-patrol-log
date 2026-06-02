@@ -955,12 +955,12 @@ button {
    ═══════════════════════════════════════════ */
 .screen-patrol {
     background: var(--white);
+}
+
+.screen-patrol.active {
     height: 100vh !important;
     height: 100dvh !important;
     overflow: hidden !important;
-    display: flex;
-    flex-direction: column;
-    position: relative;
 }
 
 .patrol-header {
