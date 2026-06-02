@@ -1,5 +1,5 @@
 /**
- * PatrolLog AI - 순찰로그 AI
+ * ORCA
  * 해양경찰청 순찰 업무 지원 모바일 SPA
  */
 

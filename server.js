@@ -329,6 +329,6 @@ app.get('/', (req, res) => {
 
 // 서버 시작
 app.listen(PORT, () => {
-    console.log(`\n🚢 순찰로그 AI 서비스 실행 중`);
+    console.log(`\n🚢 ORCA 서비스 실행 중`);
     console.log(`   http://localhost:${PORT}\n`);
 });
