@@ -6,11 +6,12 @@
 // ═══════════════════════════════════════════
 // GLOBAL STATE
 // ═══════════════════════════════════════════
+const initDate = new Date();
 const State = {
     currentScreen: 'splash',
-    selectedDate: { year: 2026, month: 5, day: 1 }, // Default June 1, 2026
-    selectedYear: 2026,
-    selectedMonth: 5, // June (0-indexed is 5)
+    selectedDate: { year: initDate.getFullYear(), month: initDate.getMonth(), day: initDate.getDate() }, // Defaults to today
+    selectedYear: initDate.getFullYear(),
+    selectedMonth: initDate.getMonth(),
     selectedMembers: [1, 2], // Default select 김민준(1), 박서연(2) like Image 2
     selectedPatrolType: '해안', // Default patrol type
     selectedCourse: '',
@@ -653,7 +654,7 @@ function renderCourseChips() {
 }
 
 function renderScheduleScreen() {
-    switchSetupTab('members'); // Default tab open
+    switchSetupTab('date'); // Default tab open
 }
 
 
@@ -684,12 +685,23 @@ function renderMiniCalendar() {
         const dayOfWeek = (startDayOfWeek + d - 1) % 7;
         const el = createDayElement(d, false, dayOfWeek);
 
-        if (d === 1) el.classList.add('selected'); // Default mockup check June 1
+        // Highlight today or selected date automatically
+        if (State.selectedDate && 
+            State.selectedDate.year === year && 
+            State.selectedDate.month === month && 
+            State.selectedDate.day === d) {
+            el.classList.add('selected');
+        }
 
         el.addEventListener('click', () => {
             $$('.calendar-day').forEach(cell => cell.classList.remove('selected'));
             el.classList.add('selected');
             State.selectedDate = { year, month, day: d };
+            
+            // Auto transition to "Dispatch Members" tab after a tiny feedback delay!
+            setTimeout(() => {
+                switchSetupTab('members');
+            }, 250);
         });
 
         grid.appendChild(el);
