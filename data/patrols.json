@@ -1,0 +1,93 @@
+[
+  {
+    "id": "5b752cdd-4167-40fe-8ea4-92bd0febb96e",
+    "date": "2026-06-01",
+    "members": [
+      "경사 김민준",
+      "순경 박서연"
+    ],
+    "course": "해안1코스",
+    "coursePoints": [
+      {
+        "name": "A구역(인항파출소 및 전용부두)",
+        "lat": 37.4579,
+        "lng": 126.5986
+      },
+      {
+        "name": "C구역(월미도 및 월미산책로)",
+        "lat": 37.472,
+        "lng": 126.596
+      },
+      {
+        "name": "D구역(북성포구 및 만석부두)",
+        "lat": 37.481,
+        "lng": 126.608
+      },
+      {
+        "name": "E구역(화수부두 및 인천내항)",
+        "lat": 37.487,
+        "lng": 126.621
+      }
+    ],
+    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+    "status": "completed",
+    "points": [
+      {
+        "id": "pt-0-1780291182189",
+        "location": "A구역(인항파출소 및 전용부두)",
+        "code": "A",
+        "detail": "인항파출소 및 전용부두",
+        "lat": 37.4579,
+        "lng": 126.5986,
+        "arrivalTime": "14:19",
+        "departureTime": "14:19",
+        "memo": "주취자",
+        "completed": true
+      },
+      {
+        "id": "pt-1-1780291182189",
+        "location": "C구역(월미도 및 월미산책로)",
+        "code": "C",
+        "detail": "월미도 및 월미산책로",
+        "lat": 37.472,
+        "lng": 126.596,
+        "arrivalTime": "14:19",
+        "departureTime": "14:20",
+        "memo": "이상 없음",
+        "completed": true
+      },
+      {
+        "id": "pt-2-1780291182189",
+        "location": "D구역(북성포구 및 만석부두)",
+        "code": "D",
+        "detail": "북성포구 및 만석부두",
+        "lat": 37.481,
+        "lng": 126.608,
+        "arrivalTime": "14:20",
+        "departureTime": "14:20",
+        "memo": "소음신고",
+        "completed": true
+      },
+      {
+        "id": "pt-3-1780291182189",
+        "location": "E구역(화수부두 및 인천내항)",
+        "code": "E",
+        "detail": "화수부두 및 인천내항",
+        "lat": 37.487,
+        "lng": 126.621,
+        "arrivalTime": "14:20",
+        "departureTime": "14:20",
+        "memo": "기타",
+        "completed": true
+      }
+    ],
+    "summary": {
+      "totalDistance": 4,
+      "totalTime": 1,
+      "patrolMethod": "도보 및 차량",
+      "patrolCount": "4곳"
+    },
+    "createdAt": "2026-06-01T05:19:42.184Z",
+    "updatedAt": "2026-06-01T05:20:04.654Z"
+  }
+]

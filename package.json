@@ -1,0 +1,15 @@
+{
+  "name": "location-report-service",
+  "version": "1.0.0",
+  "description": "위치·시간 기록 기반 일지보고서(HWPX) 생성 서비스",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "archiver": "^7.0.1",
+    "uuid": "^11.1.0"
+  }
+}
