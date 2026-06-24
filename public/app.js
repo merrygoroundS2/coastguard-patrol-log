@@ -4,6 +4,1048 @@
  */
 
 // ═══════════════════════════════════════════
+// API MOCK INTERCEPTOR FOR OFFLINE / DEPLOYED ENVIRONMENTS
+// ═══════════════════════════════════════════
+(function() {
+    const isGitHubPages = window.location.hostname.includes('github.io');
+    const isFileProtocol = window.location.protocol === 'file:';
+    let forceMock = isGitHubPages || isFileProtocol;
+
+    // Seed data from server's patrols.json
+    const SEED_PATROLS = [
+      {
+        "id": "f5e9c85c-25f5-47d3-9880-e29821efd436",
+        "date": "2026-06-01",
+        "members": ["경사 김민준", "순경 박서연"],
+        "course": "해상1코스",
+        "coursePoints": [
+          { "name": "A구역(인항파출소 및 전용부두)", "lat": 37.4579, "lng": 126.5986 },
+          { "name": "C구역(월미도 및 월미산책로)", "lat": 37.472, "lng": 126.596 },
+          { "name": "D구역(북성포구 및 만석부두)", "lat": 37.481, "lng": 126.608 },
+          { "name": "E구역(화수부두 및 인천내항)", "lat": 37.487, "lng": 126.621 },
+          { "name": "H구역(영종대교 및 물치도)", "lat": 37.545, "lng": 126.598 }
+        ],
+        "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+        "status": "completed",
+        "points": [
+          { "id": "pt-0-1780380326843", "location": "A구역(인항파출소 및 전용부두)", "code": "A", "detail": "인항파출소 및 전용부두", "lat": 37.4579, "lng": 126.5986, "arrivalTime": "15:05", "departureTime": "15:05", "memo": "해안순찰 전 안전교육 실시", "completed": true },
+          { "id": "pt-1-1780380326843", "location": "C구역(월미도 및 월미산책로)", "code": "C", "detail": "월미도 및 월미산책로", "lat": 37.472, "lng": 126.596, "arrivalTime": "15:05", "departureTime": "15:05", "memo": "주취자", "completed": true },
+          { "id": "pt-2-1780380326843", "location": "D구역(북성포구 및 만석부두)", "code": "D", "detail": "북성포구 및 만석부두", "lat": 37.481, "lng": 126.608, "arrivalTime": "15:05", "departureTime": "15:05", "memo": "불법주차", "completed": true },
+          { "id": "pt-3-1780380326843", "location": "E구역(화수부두 및 인천내항)", "code": "E", "detail": "화수부두 및 인천내항", "lat": 37.487, "lng": 126.621, "arrivalTime": "15:05", "departureTime": "15:05", "memo": "소음신고", "completed": true },
+          { "id": "pt-4-1780380326843", "location": "H구역(영종대교 및 물치도)", "code": "H", "detail": "영종대교 및 물치도", "lat": 37.545, "lng": 126.598, "arrivalTime": "15:05", "departureTime": "15:05", "memo": "이상 없음", "completed": true }
+        ],
+        "summary": { "totalDistance": 5, "totalTime": 2, "patrolMethod": "도보 및 차량", "patrolCount": "5곳" },
+        "createdAt": "2026-06-02T06:05:26.839Z",
+        "updatedAt": "2026-06-02T06:05:40.070Z"
+      },
+      {
+        "id": "8364ecaa-1d81-42ca-b5d2-db0a659d15ce",
+        "date": "2026-06-22",
+        "members": ["경사 김민준", "순경 박서연", "경장 이지훈"],
+        "course": "해상2코스",
+        "coursePoints": [
+          { "name": "A구역(인항파출소 및 전용부두)", "lat": 37.4579, "lng": 126.5986 },
+          { "name": "B구역(연안부두 및 터미널)", "lat": 37.4536, "lng": 126.5982 },
+          { "name": "F구역(석탄부두 및 남항부두)", "lat": 37.442, "lng": 126.602 },
+          { "name": "G구역(국제여객터미널 및 송도)", "lat": 37.426, "lng": 126.599 }
+        ],
+        "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+        "status": "completed",
+        "points": [
+          { "id": "pt-0-1782110032245", "location": "A구역(인항파출소 및 전용부두)", "code": "A", "detail": "인항파출소 및 전용부두", "lat": 37.4579, "lng": 126.5986, "arrivalTime": "15:33", "departureTime": "15:33", "memo": "해안순찰 전 안전교육 실시", "completed": true },
+          { "id": "pt-1-1782110032245", "location": "B구역(연안부두 및 터미널)", "code": "B", "detail": "연안부두 및 터미널", "lat": 37.4536, "lng": 126.5982, "arrivalTime": "15:33", "departureTime": "15:34", "memo": "주취자 2명 발견", "completed": true },
+          { "id": "pt-2-1782110032245", "location": "F구역(석탄부두 및 남항부두)", "code": "F", "detail": "석탄부두 및 남항부두", "lat": 37.442, "lng": 126.602, "arrivalTime": "15:34", "departureTime": "15:34", "memo": "불법주차 차량 단속조취", "completed": true },
+          { "id": "pt-3-1782110032245", "location": "G구역(국제여객터미널 및 송도)", "code": "G", "detail": "국제여객터미널 및 송도", "lat": 37.426, "lng": 126.599, "arrivalTime": "15:34", "departureTime": "15:34", "memo": "오토바이 소음신고로 인해 방문", "completed": true }
+        ],
+        "summary": { "totalDistance": 4, "totalTime": 1, "patrolMethod": "도보 및 차량", "patrolCount": "4곳" },
+        "createdAt": "2026-06-22T06:33:52.239Z",
+        "updatedAt": "2026-06-22T06:34:31.871Z"
+      },
+      {
+        "id": "53d1040b-fa98-462d-ac05-3a093361d697",
+        "date": "2026-06-23",
+        "members": ["경위 정현우", "순경 최수아", "경장 이지훈"],
+        "course": "해상2코스",
+        "coursePoints": [
+          { "name": "A구역(인항파출소 및 전용부두)", "lat": 37.4579, "lng": 126.5986 },
+          { "name": "B구역(연안부두 및 터미널)", "lat": 37.4536, "lng": 126.5982 },
+          { "name": "F구역(석탄부두 및 남항부두)", "lat": 37.442, "lng": 126.602 },
+          { "name": "G구역(국제여객터미널 및 송도)", "lat": 37.426, "lng": 126.599 }
+        ],
+        "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+        "status": "completed",
+        "points": [
+          { "id": "pt-0-1782200558703", "location": "A구역(인항파출소 및 전용부두)", "code": "A", "detail": "인항파출소 및 전용부두", "lat": 37.4579, "lng": 126.5986, "arrivalTime": "16:42", "departureTime": "16:45", "memo": "해안순찰 전 안전교육 실시", "completed": true },
+          { "id": "pt-1-1782200558703", "location": "B구역(연안부두 및 터미널)", "code": "B", "detail": "연안부두 및 터미널", "lat": 37.4536, "lng": 126.5982, "arrivalTime": "16:46", "departureTime": "16:48", "memo": "낚시객 구명조끼 착용 여부 점검 및 안전계도 완료", "completed": true },
+          { "id": "pt-2-1782200558703", "location": "F구역(석탄부두 및 남항부두)", "code": "F", "detail": "석탄부두 및 남항부두", "lat": 37.442, "lng": 126.602, "arrivalTime": "16:49", "departureTime": "16:50", "memo": "이상 없음", "completed": true },
+          { "id": "pt-3-1782200558703", "location": "G구역(국제여객터미널 및 송도)", "code": "G", "detail": "국제여객터미널 및 송도", "lat": 37.426, "lng": 126.599, "arrivalTime": "16:51", "departureTime": "16:52", "memo": "이상 없음", "completed": true }
+        ],
+        "summary": { "totalDistance": 4, "totalTime": 10, "patrolMethod": "도보 및 차량", "patrolCount": "4곳" },
+        "createdAt": "2026-06-23T07:42:38.700Z",
+        "updatedAt": "2026-06-23T07:43:27.526Z"
+      },
+      {
+        "id": "aefa2625-0140-43b3-8565-57a502a75cdb",
+        "date": "2026-06-24",
+        "members": ["경장 이지훈", "순경 최수아"],
+        "course": "해상2코스",
+        "coursePoints": [
+          { "name": "A구역(인항파출소 및 전용부두)", "lat": 37.4579, "lng": 126.5986 },
+          { "name": "B구역(연안부두 및 터미널)", "lat": 37.4536, "lng": 126.5982 },
+          { "name": "F구역(석탄부두 및 남항부두)", "lat": 37.442, "lng": 126.602 },
+          { "name": "G구역(국제여객터미널 및 송도)", "lat": 37.426, "lng": 126.599 }
+        ],
+        "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+        "status": "completed",
+        "points": [
+          { "id": "pt-0-1782259995805", "location": "A구역(인항파출소 및 전용부두)", "code": "A", "detail": "인항파출소 및 전용부두", "lat": 37.4579, "lng": 126.5986, "arrivalTime": "09:13", "departureTime": "09:14", "memo": "금지구역 불법 낚시 단속 활동", "completed": true },
+          { "id": "pt-1-1782259995805", "location": "B구역(연안부두 및 터미널)", "code": "B", "detail": "연안부두 및 터미널", "lat": 37.4536, "lng": 126.5982, "arrivalTime": "09:14", "departureTime": "09:14", "memo": "낚시객 안전계도 실시", "completed": true },
+          { "id": "pt-2-1782259995805", "location": "F구역(석탄부두 및 남항부두)", "code": "F", "detail": "석탄부두 및 남항부두", "lat": 37.442, "lng": 126.602, "arrivalTime": "09:14", "departureTime": "09:14", "memo": "이상 없음", "completed": true },
+          { "id": "pt-3-1782259995805", "location": "G구역(국제여객터미널 및 송도)", "code": "G", "detail": "국제여객터미널 및 송도", "lat": 37.426, "lng": 126.599, "arrivalTime": "09:14", "departureTime": "09:14", "memo": "방파제 테트라포드 균열 발견", "completed": true }
+        ],
+        "summary": { "totalDistance": 4, "totalTime": 1, "patrolMethod": "도보 및 차량", "patrolCount": "4곳" },
+        "createdAt": "2026-06-24T00:13:15.799Z",
+        "updatedAt": "2026-06-24T00:14:58.371Z"
+      }
+    ];
+
+    function getPatrols() {
+        let data = localStorage.getItem('orca_patrols');
+        if (!data) {
+            localStorage.setItem('orca_patrols', JSON.stringify(SEED_PATROLS));
+            return SEED_PATROLS;
+        }
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            localStorage.setItem('orca_patrols', JSON.stringify(SEED_PATROLS));
+            return SEED_PATROLS;
+        }
+    }
+
+    function savePatrols(patrols) {
+        localStorage.setItem('orca_patrols', JSON.stringify(patrols));
+    }
+
+    // Intercept Fetch API globally
+    const originalFetch = window.fetch;
+    window.fetch = async function(resource, options) {
+        let url = typeof resource === 'string' ? resource : resource.url;
+        
+        if (url.startsWith('/api/') || url.startsWith('api/')) {
+            if (url.startsWith('api/')) {
+                url = '/' + url;
+            }
+            
+            if (forceMock) {
+                return mockFetch(url, options);
+            }
+            
+            try {
+                const response = await originalFetch(resource, options);
+                return response;
+            } catch (err) {
+                console.warn('Real server connection failed. Switched to local storage mock.', err);
+                forceMock = true;
+                return mockFetch(url, options);
+            }
+        }
+        
+        return originalFetch(resource, options);
+    };
+
+    function mockResponse(data, status = 200, headers = {}) {
+        return new Response(JSON.stringify(data), {
+            status: status,
+            headers: {
+                'Content-Type': 'application/json',
+                ...headers
+            }
+        });
+    }
+
+    async function mockFetch(url, options = {}) {
+        const method = (options.method || 'GET').toUpperCase();
+        let body = null;
+        if (options.body) {
+            try {
+                body = typeof options.body === 'string' ? JSON.parse(options.body) : options.body;
+            } catch (e) {
+                console.error('Failed to parse mock body:', e);
+            }
+        }
+        
+        console.log(`[Mock API Router] ${method} ${url}`, body);
+
+        // 1. GET /api/patrols
+        if (url === '/api/patrols' && method === 'GET') {
+            const patrols = getPatrols();
+            return mockResponse({ success: true, patrols });
+        }
+
+        // 2. POST /api/patrols
+        if (url === '/api/patrols' && method === 'POST') {
+            const { date, members, course, coursePoints, organization } = body;
+            if (!date || !members || !course) {
+                return mockResponse({ success: false, error: '날짜, 인원, 코스를 모두 입력해주세요.' }, 400);
+            }
+
+            const newPatrol = {
+                id: 'pt-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+                date,
+                members: members || [],
+                course,
+                coursePoints: coursePoints || [],
+                organization: organization || '해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소',
+                status: 'in_progress',
+                points: [],
+                summary: {
+                    totalDistance: 0,
+                    totalTime: 0,
+                    patrolMethod: '도보 및 차량'
+                },
+                createdAt: new Date().toISOString()
+            };
+
+            const patrols = getPatrols();
+            patrols.push(newPatrol);
+            savePatrols(patrols);
+
+            return mockResponse({ success: true, patrol: newPatrol });
+        }
+
+        // 3. PUT /api/patrols/:id
+        const putPatrolMatch = url.match(/^\/api\/patrols\/([^\/]+)$/);
+        if (putPatrolMatch && method === 'PUT') {
+            const id = putPatrolMatch[1];
+            const patrols = getPatrols();
+            const idx = patrols.findIndex(p => p.id === id);
+            if (idx === -1) {
+                return mockResponse({ success: false, error: '순찰을 찾을 수 없습니다.' }, 404);
+            }
+
+            const updates = body;
+            const allowedFields = ['points', 'summary', 'status', 'members', 'course', 'coursePoints', 'date'];
+            allowedFields.forEach(field => {
+                if (updates[field] !== undefined) {
+                    patrols[idx][field] = updates[field];
+                }
+            });
+            patrols[idx].updatedAt = new Date().toISOString();
+            
+            savePatrols(patrols);
+            return mockResponse({ success: true, patrol: patrols[idx] });
+        }
+
+        // 4. DELETE /api/patrols/:id
+        const deletePatrolMatch = url.match(/^\/api\/patrols\/([^\/]+)$/);
+        if (deletePatrolMatch && method === 'DELETE') {
+            const id = deletePatrolMatch[1];
+            let patrols = getPatrols();
+            const before = patrols.length;
+            patrols = patrols.filter(p => p.id !== id);
+            if (patrols.length === before) {
+                return mockResponse({ success: false, error: '해당 순찰 기록을 찾을 수 없습니다.' }, 404);
+            }
+            savePatrols(patrols);
+            return mockResponse({ success: true });
+        }
+
+        // 5. GET /api/patrols/:id
+        const getPatrolMatch = url.match(/^\/api\/patrols\/([^\/]+)$/);
+        if (getPatrolMatch && method === 'GET') {
+            const id = getPatrolMatch[1];
+            const patrols = getPatrols();
+            const patrol = patrols.find(p => p.id === id);
+            if (!patrol) {
+                return mockResponse({ success: false, error: '순찰을 찾을 수 없습니다.' }, 404);
+            }
+            return mockResponse({ success: true, patrol });
+        }
+
+        // 6. GET /api/ai/pattern-analysis
+        if (url === '/api/ai/pattern-analysis' && method === 'GET') {
+            const patrols = getPatrols();
+            const analysis = analyzePatternsClient(patrols);
+            return mockResponse({ success: true, analysis });
+        }
+
+        // 7. POST /api/ai/quality-check
+        if (url === '/api/ai/quality-check' && method === 'POST') {
+            let patrol = body.patrol;
+            if (body.patrolId) {
+                const patrols = getPatrols();
+                patrol = patrols.find(p => p.id === body.patrolId);
+            }
+            if (!patrol) {
+                return mockResponse({ success: false, error: '순찰 데이터를 찾을 수 없습니다.' }, 404);
+            }
+            const alerts = checkQualityClient(patrol);
+            return mockResponse({ success: true, alerts });
+        }
+
+        // 8. POST /api/ai/generate-report
+        if (url === '/api/ai/generate-report' && method === 'POST') {
+            let patrol = body.patrol;
+            if (body.patrolId) {
+                const patrols = getPatrols();
+                patrol = patrols.find(p => p.id === body.patrolId);
+            }
+            if (!patrol) {
+                return mockResponse({ success: false, error: '순찰 데이터를 찾을 수 없습니다.' }, 404);
+            }
+            const report = generateAIReportClient(patrol);
+            const classifications = (patrol.points || []).map(pt => ({
+                location: pt.location,
+                memo: pt.memo,
+                classification: classifyMemoClient(pt.memo)
+            }));
+            return mockResponse({ success: true, report, classifications });
+        }
+
+        // 9. POST /api/patrols/:id/report (HWPX Download)
+        const reportMatch = url.match(/^\/api\/patrols\/([^\/]+)\/report$/);
+        if (reportMatch && method === 'POST') {
+            const id = reportMatch[1];
+            const patrols = getPatrols();
+            const patrol = patrols.find(p => p.id === id);
+            if (!patrol) {
+                return mockResponse({ success: false, error: '순찰을 찾을 수 없습니다.' }, 404);
+            }
+            
+            try {
+                const blob = await generateHwpxBlobClient(patrol);
+                const filename = `순찰일지_${patrol.date}.hwpx`;
+                return new Response(blob, {
+                    status: 200,
+                    headers: {
+                        'Content-Type': 'application/hwp+zip',
+                        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+                    }
+                });
+            } catch (err) {
+                console.error('Client-side HWPX export failed:', err);
+                return mockResponse({ success: false, error: '보고서 생성 중 오류가 발생했습니다: ' + err.message }, 500);
+            }
+        }
+
+        return mockResponse({ success: false, error: 'Not Found' }, 404);
+    }
+
+    // Dynamic JSZip Loading
+    async function loadJSZip() {
+        if (window.JSZip) return window.JSZip;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+            script.onload = () => resolve(window.JSZip);
+            script.onerror = (e) => reject(new Error('JSZip 로드 실패: ' + e.message));
+            document.head.appendChild(script);
+        });
+    }
+
+    // HWPX client generator logic
+    const NS_HP = 'http://www.hancom.com/2011/hwpx';
+
+    function generateMimetype() {
+        return 'application/hwp+zip';
+    }
+
+    function generateVersionXml() {
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<hv:HWPVersion xmlns:hv="${NS_HP}" Major="1" Minor="1" Micro="0" BuildNumber="0"/>`;
+    }
+
+    function generateContainerXml() {
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="Contents/content.hpf" media-type="application/hwp+xml"/>
+  </rootfiles>
+</container>`;
+    }
+
+    function generateManifestXml() {
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<odf:manifest xmlns:odf="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">
+  <odf:file-entry odf:media-type="application/hwp+zip" odf:full-path="/"/>
+  <odf:file-entry odf:media-type="text/xml" odf:full-path="Contents/content.hpf"/>
+  <odf:file-entry odf:media-type="text/xml" odf:full-path="Contents/header.xml"/>
+  <odf:file-entry odf:media-type="text/xml" odf:full-path="Contents/section0.xml"/>
+</odf:manifest>`;
+    }
+
+    function generateContentHpf() {
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<hp:package xmlns:hp="${NS_HP}" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:opf="http://www.idpf.org/2007/opf">
+  <hp:metadata>
+    <dc:title>일지보고서</dc:title>
+    <dc:language>ko</dc:language>
+  </hp:metadata>
+  <hp:manifest>
+    <hp:item id="header" href="header.xml" media-type="application/hwp+xml"/>
+    <hp:item id="section0" href="section0.xml" media-type="application/hwp+xml"/>
+  </hp:manifest>
+  <hp:spine>
+    <hp:itemref idref="section0"/>
+  </hp:spine>
+</hp:package>`;
+    }
+
+    function generateHeaderXml() {
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<hp:header xmlns:hp="${NS_HP}">
+  <hp:beginNum page="1" footNote="1" endNote="1" pic="1" tbl="1" equation="1"/>
+  <hp:borderFills count="3">
+    <hp:borderFill id="1" threeD="0" shadow="0">
+      <hp:slash type="none"/>
+      <hp:backSlash type="none"/>
+      <hp:leftEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:leftEdge>
+      <hp:rightEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:rightEdge>
+      <hp:topEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:topEdge>
+      <hp:bottomEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:bottomEdge>
+      <hp:diagonal type="none"/>
+    </hp:borderFill>
+    <hp:borderFill id="2" threeD="0" shadow="0">
+      <hp:slash type="none"/>
+      <hp:backSlash type="none"/>
+      <hp:leftEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:leftEdge>
+      <hp:rightEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:rightEdge>
+      <hp:topEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:topEdge>
+      <hp:bottomEdge><hp:line type="solid" width="0.12mm" color="000000"/></hp:bottomEdge>
+      <hp:diagonal type="none"/>
+      <hp:fillPr>
+        <hp:solidFill>
+          <hp:color value="F0F2F5"/>
+        </hp:solidFill>
+      </hp:fillPr>
+    </hp:borderFill>
+  </hp:borderFills>
+  <hp:charProps>
+    <hp:charPr id="0" height="1000" fontIdRef="0"/>
+    <hp:charPr id="1" height="1600" fontIdRef="0" bold="1"/>
+    <hp:charPr id="2" height="1100" fontIdRef="0" bold="1"/>
+    <hp:charPr id="3" height="2400" fontIdRef="0" bold="1"/>
+  </hp:charProps>
+  <hp:paraProps>
+    <hp:paraPr id="0" align="justify"/>
+    <hp:paraPr id="1" align="center"/>
+    <hp:paraPr id="2" align="left"/>
+    <hp:paraPr id="3" align="right"/>
+  </hp:paraProps>
+  <hp:fontFaces>
+    <hp:fontFace id="0" lang="hangul" face="함초롬바탕"/>
+  </hp:fontFaces>
+</hp:header>`;
+    }
+
+    function createCellXml(text, col, row, charPrId = '0', paraPrId = '0', colSpan = 1, rowSpan = 1, borderFillId = 1) {
+        const escapedText = escapeXmlLocal(text);
+        return `<hp:tc>
+                <hp:tcPr>
+                  <hp:cellAddr colAddr="${col}" rowAddr="${row}"/>
+                  <hp:cellSpan colSpan="${colSpan}" rowSpan="${rowSpan}"/>
+                  <hp:borderFillID ref="${borderFillId}"/>
+                </hp:tcPr>
+                <hp:p paraPrIdRef="${paraPrId}">
+                  <hp:run charPrIdRef="${charPrId}">
+                    <hp:t>${escapedText}</hp:t>
+                  </hp:run>
+                </hp:p>
+              </hp:tc>`;
+    }
+
+    function escapeXmlLocal(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}.${m}.${day}`;
+    }
+
+    function formatTime(dateStr) {
+        const d = new Date(dateStr);
+        const h = String(d.getHours()).padStart(2, '0');
+        const m = String(d.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    }
+
+    function generateSection0Xml(records, authorName, reportDate, courseName = '1코스') {
+        const firstRecord = records[0] || {};
+        const lastRecord = records[records.length - 1] || firstRecord;
+
+        const dateVal = firstRecord.startTime ? formatDate(firstRecord.startTime) : formatDate(new Date().toISOString());
+        const startTimeStr = firstRecord.startTime ? formatTime(firstRecord.startTime) : '00:00';
+        const endTimeStr = lastRecord.endTime ? formatTime(lastRecord.endTime) : startTimeStr;
+        const timeVal = `${startTimeStr} ~ ${endTimeStr}`;
+
+        const typeVal = '해안순찰';
+
+        const pathAddresses = records
+            .map(r => r.address || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`)
+            .filter((val, index, self) => self.indexOf(val) === index);
+        const pathRoute = pathAddresses.join(' - ');
+        const placeVal = `${courseName}: ${pathRoute}`;
+
+        const officerVal = authorName || '경사 홍길동, 경장 윤봉길, 순경 안중근';
+
+        let timelineRows = '';
+        records.forEach((r, idx) => {
+            const rowIdx = idx + 1;
+            const rowTime = `${formatTime(r.startTime)} ~ ${formatTime(r.endTime)}`;
+            const rowPlace = r.address || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`;
+            const rowActivity = r.activity || '이상 없음';
+
+            timelineRows += `
+        <hp:tr>
+          ${createCellXml(rowTime, 0, rowIdx, '0', '1', 1, 1, 1)}
+          ${createCellXml(rowPlace, 1, rowIdx, '0', '1', 1, 1, 1)}
+          ${createCellXml(rowActivity, 2, rowIdx, '0', '2', 1, 1, 1)}
+        </hp:tr>`;
+        });
+
+        const incidentRecords = records.filter(r => {
+            const act = r.activity ? r.activity.trim() : '';
+            return act !== '이상 없음' && act !== '이상없음' && act !== '순찰' && act !== '';
+        });
+
+        let incidentRows = '';
+        const incidentRowCnt = incidentRecords.length > 0 ? incidentRecords.length : 2;
+
+        if (incidentRecords.length > 0) {
+            incidentRecords.forEach((r, idx) => {
+                const rowIdx = idx + 1;
+                const rowTime = formatTime(r.startTime);
+                const rowPlace = r.address || `${r.latitude.toFixed(4)}, ${r.longitude.toFixed(4)}`;
+                const rowActivity = r.activity || '';
+
+                incidentRows += `
+            <hp:tr>
+              ${createCellXml(rowTime, 0, rowIdx, '0', '1', 1, 1, 1)}
+              ${createCellXml(rowPlace, 1, rowIdx, '0', '1', 1, 1, 1)}
+              ${createCellXml(rowActivity, 2, rowIdx, '0', '2', 1, 1, 1)}
+            </hp:tr>`;
+            });
+        } else {
+            incidentRows += `
+        <hp:tr>
+          ${createCellXml('00:00', 0, 1, '0', '1', 1, 1, 1)}
+          ${createCellXml('-', 1, 1, '0', '1', 1, 1, 1)}
+          ${createCellXml('-', 2, 1, '0', '1', 1, 1, 1)}
+        </hp:tr>
+        <hp:tr>
+          ${createCellXml('00:00', 0, 2, '0', '1', 1, 1, 1)}
+          ${createCellXml('-', 1, 2, '0', '1', 1, 1, 1)}
+          ${createCellXml('-', 2, 2, '0', '1', 1, 1, 1)}
+        </hp:tr>`;
+        }
+
+        return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<hp:section xmlns:hp="${NS_HP}">
+  <hp:p paraPrIdRef="1">
+    <hp:run charPrIdRef="3">
+      <hp:t>순 찰 일 지</hp:t>
+    </hp:run>
+  </hp:p>
+  <hp:p/>
+  <hp:tbl rowCnt="3" colCnt="6" borderFillIDRef="1" zOrder="0" textWrap="square" treatAsChar="true">
+    <hp:sz width="14800" height="0"/>
+    <hp:pos relativeTo="para" align="center" flowWithText="true" allowOverlap="false" holdAnchorAndPostion="false"/>
+    <hp:tblPr>
+      <hp:borderFillID ref="1"/>
+    </hp:tblPr>
+    <hp:colWidths count="6">
+      <hp:colWidth>1800</hp:colWidth>
+      <hp:colWidth>3100</hp:colWidth>
+      <hp:colWidth>1800</hp:colWidth>
+      <hp:colWidth>3100</hp:colWidth>
+      <hp:colWidth>1800</hp:colWidth>
+      <hp:colWidth>3200</hp:colWidth>
+    </hp:colWidths>
+    <hp:tr>
+      ${createCellXml('근무일자', 0, 0, '2', '1', 1, 1, 2)}
+      ${createCellXml(dateVal, 1, 0, '0', '1', 1, 1, 1)}
+      ${createCellXml('시간', 2, 0, '2', '1', 1, 1, 2)}
+      ${createCellXml(timeVal, 3, 0, '0', '1', 1, 1, 1)}
+      ${createCellXml('구분', 4, 0, '2', '1', 1, 1, 2)}
+      ${createCellXml(typeVal, 5, 0, '0', '1', 1, 1, 1)}
+    </hp:tr>
+    <hp:tr>
+      ${createCellXml('순찰 장소', 0, 1, '2', '1', 1, 1, 2)}
+      ${createCellXml(placeVal, 1, 1, '0', '1', 5, 1, 1)}
+    </hp:tr>
+    <hp:tr>
+      ${createCellXml('인원', 0, 2, '2', '1', 1, 1, 2)}
+      ${createCellXml(officerVal, 1, 2, '0', '1', 5, 1, 1)}
+    </hp:tr>
+  </hp:tbl>
+  <hp:p/>
+  <hp:tbl rowCnt="${records.length + 1}" colCnt="3" borderFillIDRef="1" zOrder="0" textWrap="square" treatAsChar="true">
+    <hp:sz width="14800" height="0"/>
+    <hp:pos relativeTo="para" align="center" flowWithText="true" allowOverlap="false" holdAnchorAndPostion="false"/>
+    <hp:tblPr>
+      <hp:borderFillID ref="1"/>
+    </hp:tblPr>
+    <hp:colWidths count="3">
+      <hp:colWidth>3000</hp:colWidth>
+      <hp:colWidth>3800</hp:colWidth>
+      <hp:colWidth>8000</hp:colWidth>
+    </hp:colWidths>
+    <hp:tr>
+      ${createCellXml('시간', 0, 0, '2', '1', 1, 1, 2)}
+      ${createCellXml('장소', 1, 0, '2', '1', 1, 1, 2)}
+      ${createCellXml('특이사항', 2, 0, '2', '1', 1, 1, 2)}
+    </hp:tr>
+    ${timelineRows}
+  </hp:tbl>
+  <hp:p/>
+  <hp:tbl rowCnt="${incidentRowCnt + 1}" colCnt="3" borderFillIDRef="1" zOrder="0" textWrap="square" treatAsChar="true">
+    <hp:sz width="14800" height="0"/>
+    <hp:pos relativeTo="para" align="center" flowWithText="true" allowOverlap="false" holdAnchorAndPostion="false"/>
+    <hp:tblPr>
+      <hp:borderFillID ref="1"/>
+    </hp:tblPr>
+    <hp:colWidths count="3">
+      <hp:colWidth>3000</hp:colWidth>
+      <hp:colWidth>3800</hp:colWidth>
+      <hp:colWidth>8000</hp:colWidth>
+    </hp:colWidths>
+    <hp:tr>
+      ${createCellXml('특이사항 내역', 0, 0, '2', '1', 3, 1, 2)}
+    </hp:tr>
+    ${incidentRows}
+  </hp:tbl>
+</hp:section>`;
+    }
+
+    async function generateHwpxBlobClient(patrol) {
+        const JSZip = await loadJSZip();
+        
+        const pts = [...(patrol.points || [])];
+        const records = pts.map(pt => ({
+            latitude: pt.lat || 0,
+            longitude: pt.lng || 0,
+            address: pt.location || '',
+            startTime: `${patrol.date}T${pt.arrivalTime || '00:00'}:00.000Z`,
+            endTime: `${patrol.date}T${pt.departureTime || pt.arrivalTime || '00:00'}:00.000Z`,
+            activity: pt.memo || '순찰',
+            note: ''
+        }));
+
+        records.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+        const authorName = patrol.members.join(', ');
+        const reportDate = new Date().toISOString();
+
+        const zip = new JSZip();
+        zip.file("mimetype", "application/hwp+zip", { compression: "STORE" });
+        zip.file("META-INF/container.xml", generateContainerXml());
+        zip.file("META-INF/manifest.xml", generateManifestXml());
+        zip.file("version.xml", generateVersionXml());
+        zip.file("Contents/content.hpf", generateContentHpf());
+        zip.file("Contents/header.xml", generateHeaderXml());
+        zip.file("Contents/section0.xml", generateSection0Xml(records, authorName, reportDate, patrol.course));
+
+        return await zip.generateAsync({ type: "blob" });
+    }
+
+    // AI summary generator logic
+    function generateAIReportClient(patrol) {
+        if (!patrol) return '';
+
+        const pts = patrol.points || [];
+        if (pts.length === 0) return '';
+
+        const rawDate = patrol.date || new Date().toISOString().split('T')[0];
+        const dateParts = rawDate.split('-');
+        const dateFormatted = `${dateParts[0]}.${dateParts[1]}.${dateParts[2]}`;
+
+        const firstPt = pts[0] || {};
+        const lastPt = pts[pts.length - 1] || firstPt;
+        const startTime = firstPt.arrivalTime || '00:00';
+        const endTime = lastPt.departureTime || lastPt.arrivalTime || '00:00';
+
+        const courseName = patrol.course || '순찰 코스';
+        const members = patrol.members || [];
+        const memberStr = members.join(', ');
+
+        const locations = pts.map(pt => {
+            const loc = pt.location || '';
+            const match = loc.match(/\(([^)]+)\)/);
+            return match ? match[1] : loc;
+        }).filter(Boolean);
+        const uniqueLocations = [...new Set(locations)];
+        const locationStr = uniqueLocations.join(' 및 ');
+
+        const classifiedMemos = pts
+            .filter(pt => pt.memo && pt.memo !== '이상 없음' && pt.memo !== '이상없음' && pt.memo !== '' && pt.memo !== '해안순찰 전 안전교육 실시' && pt.memo !== '내용을 입력해주세요')
+            .map(pt => ({
+                ...pt,
+                classification: classifyMemoClient(pt.memo)
+            }));
+
+        const categoryCount = {};
+        classifiedMemos.forEach(m => {
+            const cat = m.classification.category;
+            categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+        });
+
+        let report = `${dateFormatted} ${startTime}~${endTime} `;
+        report += `${patrol.organization || '인항파출소'} 관할구역 ${courseName} 순찰 실시. `;
+        report += `${memberStr} ${pts.length}개 구역(${locationStr}) 일대를 점검하였으며`;
+
+        if (classifiedMemos.length > 0) {
+            const details = [];
+            for (const [cat, count] of Object.entries(categoryCount)) {
+                details.push(`${cat} ${count}건`);
+            }
+            report += `, ${details.join(', ')}을 처리함. `;
+
+            classifiedMemos.forEach(m => {
+                const locName = m.location ? m.location.split('(')[0] : '';
+                report += `${locName} ${m.memo} 조치 완료. `;
+            });
+        } else {
+            report += '. 특이사항 없음. ';
+        }
+
+        report += `순찰 소요시간 약 ${patrol.summary?.totalTime || 0}분, 이상 없음.`;
+
+        return report;
+    }
+
+    // AI Classification logic
+    const AI_CATEGORIES_LOCAL_MOCK = {
+        '안전계도': ['구명조끼', '미착용', '계도', '안전', '주취자', '음주', '위험행위', '위험', '낚시객', '수영', '입수', '안전교육', '안전장비', '안전수칙', '경고', '주의', '해수욕', '물놀이'],
+        '위험요소 발견': ['파손', '누수', '균열', '붕괴', '위험', '고장', '손상', '노후', '침수', '유출', '기름', '오염', '표류', '부유물', '표류물', '장애물'],
+        '민원 대응': ['민원', '신고', '소음', '불법주차', '주차', '항의', '분쟁', '갈등', '소란', '진정', '요청', '요구', '불만', '피해', '악취'],
+        '시설 점검': ['점검', '시설', '방파제', '부두', '잔교', '난간', '조명', 'cctv', '소화기', '구명환', '계류', '정박', '보수', '정비', '수리'],
+        '단속 활동': ['단속', '불법', '무허가', '어업', '밀수', '밀입국', '불법조업', '무면허', '과적', '위반', '적발', '검거', '체포', '수색', '조사']
+    };
+
+    function classifyMemoClient(memoText) {
+        const trimmed = (memoText || '').trim();
+        if (!trimmed || trimmed === '' || trimmed === '이상 없음' || trimmed === '이상없음' || trimmed === '내용을 입력해주세요') {
+            return { category: '이상 없음', confidence: 1.0, icon: '✅', color: '#a0aec0' };
+        }
+
+        const text = memoText.toLowerCase();
+        let bestCategory = null;
+        let bestScore = 0;
+
+        for (const [category, keywords] of Object.entries(AI_CATEGORIES_LOCAL_MOCK)) {
+            let score = 0;
+            for (const keyword of keywords) {
+                if (text.includes(keyword.toLowerCase())) {
+                    score += 1;
+                }
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                bestCategory = category;
+            }
+        }
+
+        const iconMap = { '안전계도': '🛡️', '위험요소 발견': '⚠️', '민원 대응': '📋', '시설 점검': '🔧', '단속 활동': '🚨' };
+        const colorMap = { '안전계도': '#3182ce', '위험요소 발견': '#e53e3e', '민원 대응': '#d69e2e', '시설 점검': '#38a169', '단속 활동': '#805ad5' };
+
+        if (bestCategory && bestScore > 0) {
+            return {
+                category: bestCategory,
+                confidence: Math.min(0.95, 0.5 + bestScore * 0.15),
+                icon: iconMap[bestCategory] || '🛡️',
+                color: colorMap[bestCategory] || '#3182ce'
+            };
+        }
+
+        return { category: '안전계도', confidence: 0.6, icon: '🛡️', color: '#3182ce' };
+    }
+
+    // AI Quality Check logic
+    function checkQualityClient(patrol) {
+        let score = 100;
+        const checks = [
+            { name: '순찰 일시', status: 'success', message: '순찰 일시 기재 완료' },
+            { name: '순찰 장소', status: 'success', message: '순찰 장소 기재 완료' },
+            { name: '순찰 유형', status: 'success', message: '순찰 유형 선택 완료' },
+            { name: '특이사항', status: 'success', message: '특이사항 기재 완료' },
+            { name: '조치 내용', status: 'success', message: '조치 결과 기재 완료' },
+            { name: '순찰 결과', status: 'success', message: '순찰 결과 기재 완료' }
+        ];
+        const suggestions = [];
+
+        if (!patrol) {
+            return {
+                score: 0,
+                checks: checks.map(c => ({ ...c, status: 'error', message: '데이터 누락' })),
+                suggestions: ['순찰 데이터가 전달되지 않았습니다.'],
+                styleCheck: { status: 'warning', message: '점검 불가' }
+            };
+        }
+
+        if (!patrol.date) {
+            score -= 15;
+            checks[0].status = 'warning';
+            checks[0].message = '순찰 날짜 누락';
+            suggestions.push('순찰 날짜가 기재되지 않았습니다.');
+        }
+        const pts = patrol.points || [];
+        const hasTimes = pts.some(pt => pt.arrivalTime || pt.departureTime);
+        if (!hasTimes) {
+            score -= 10;
+            checks[0].status = 'warning';
+            checks[0].message = '순찰 시간 정보 부족';
+            suggestions.push('순찰 지점별 도착/출발 시간이 누락되었습니다.');
+        }
+
+        if (pts.length === 0) {
+            score -= 20;
+            checks[1].status = 'warning';
+            checks[1].message = '순찰 지점 없음';
+            suggestions.push('순찰한 장소(경로 지점)가 등록되지 않았습니다.');
+        } else {
+            const missingLocationNames = pts.some(pt => !pt.location);
+            if (missingLocationNames) {
+                score -= 5;
+                checks[1].status = 'warning';
+                checks[1].message = '일부 지명 누락';
+                suggestions.push('순찰 경로 지점의 상세 명칭을 모두 기재해 주세요.');
+            }
+        }
+
+        const patrolType = patrol.patrolType || patrol.patrolMethod || (patrol.summary && patrol.summary.patrolMethod) || patrol.course;
+        if (!patrolType) {
+            score -= 15;
+            checks[2].status = 'warning';
+            checks[2].message = '순찰 유형 누락';
+            suggestions.push('도보, 차량, 해안, 해상 등 순찰 수단/종류를 선택해 주세요.');
+        }
+
+        const allMemos = pts.map(pt => pt.memo || '').join(' ').trim();
+        const hasValidMemo = pts.some(pt => pt.memo && pt.memo.trim() !== '' && !pt.memo.includes('특이사항 없음'));
+        if (!allMemos || allMemos.length === 0) {
+            score -= 15;
+            checks[3].status = 'warning';
+            checks[3].message = '특이사항 미입력';
+            suggestions.push('순찰 중 발생한 특이사항 또는 점검 내용을 상세히 기재해 주세요.');
+        } else if (!hasValidMemo) {
+            score -= 5;
+            checks[3].status = 'info';
+            checks[3].message = '단순 특이사항 없음';
+            suggestions.push('구체적인 점검 항목(예: 시설 파손 여부, 주차 상태 등)을 보완하는 것을 권장합니다.');
+        }
+
+        const actionKeywords = ['계도', '조치', '안내', '대응', '처리', '통제', '이동', '훈방', '단속', '점검', '수리', '보수', '전달', '보고', '신고', '요청', '완료', '실시'];
+        const problemCategories = ['위험요소 발견', '민원 대응'];
+
+        const missingActionMemos = [];
+        const shortActionMemos = [];
+        let hasAnyAction = false;
+
+        pts.forEach(pt => {
+            const memo = (pt.memo || '').trim();
+            if (!memo || memo === '이상 없음' || memo === '이상없음' || memo === '내용을 입력해주세요') return;
+
+            const classification = classifyMemoClient(memo);
+            const memoHasAction = actionKeywords.some(kw => memo.includes(kw));
+
+            if (memoHasAction) hasAnyAction = true;
+
+            if (problemCategories.includes(classification.category)) {
+                if (!memoHasAction) {
+                    missingActionMemos.push({ location: pt.location || '미상', memo, category: classification.category });
+                } else if (memo.length < 20) {
+                    shortActionMemos.push({ location: pt.location || '미상', memo, category: classification.category });
+                }
+            }
+        });
+
+        if (missingActionMemos.length > 0) {
+            score -= 15;
+            checks[4].status = 'warning';
+            checks[4].message = `조치 결과 미기재 (${missingActionMemos.length}건)`;
+            const details = missingActionMemos.map(m => `"${m.memo}" (${m.category})`).join(', ');
+            suggestions.push(`다음 특이사항에 대한 조치 결과가 누락되었습니다: ${details}. 발견 후 어떻게 조치했는지(보고, 수리 요청, 통제 등)를 반드시 기재해 주세요.`);
+        } else if (shortActionMemos.length > 0) {
+            score -= 10;
+            checks[4].status = 'info';
+            checks[4].message = '조치 키워드 확인되나 상세 내용 부족';
+            suggestions.push('조치 키워드(대응, 조치 등)는 확인되지만, 구체적인 해결 방식이나 결과를 보다 상세히 기재해 주세요. (예: "어떻게 대응했는지", "결과가 어떠했는지")');
+        } else if (!hasAnyAction && allMemos.length > 0) {
+            score -= 15;
+            checks[4].status = 'warning';
+            checks[4].message = '조치 결과 미기재';
+            suggestions.push('순찰 중 발생한 사항에 대한 조치 결과(계도 건수, 조치 내용 등)를 구체적으로 추가해 주세요.');
+        }
+
+        if (pts.length > 0 && pts.every(pt => !pt.arrivalTime && !pt.departureTime)) {
+            score -= 10;
+            checks[5].status = 'warning';
+            checks[5].message = '순찰 결과 미완성';
+            suggestions.push('순찰 활동의 최종 결과를 완성하기 위해 시간 정보를 확인해 주세요.');
+        }
+
+        let hasConversational = false;
+        const conversationalRegex = /(습니다|니다|해요|지요|네요|고요|합니다|했습니다)/;
+        if (conversationalRegex.test(allMemos)) {
+            hasConversational = true;
+        }
+
+        const styleCheck = {
+            status: 'success',
+            message: '표준 문체 적용 완료 및 표현 통일 완료'
+        };
+
+        if (hasConversational) {
+            score -= 10;
+            styleCheck.status = 'warning';
+            styleCheck.message = '구어체 감지: 공문서 표준 문체 적용 필요';
+            suggestions.push('보고서에 구어체(~습니다, ~해요)가 포함되어 있습니다. 공문서형 표준 종결어미(~함, ~실시함, ~조치함)로 통일하는 것이 좋습니다.');
+        }
+
+        let hasTimeOrderError = false;
+        for (let i = 1; i < pts.length; i++) {
+            if (pts[i].arrivalTime && pts[i - 1].departureTime) {
+                if (pts[i].arrivalTime < pts[i - 1].departureTime) {
+                    hasTimeOrderError = true;
+                }
+            }
+        }
+        if (hasTimeOrderError) {
+            score -= 10;
+            suggestions.push('도착 시간이 이전 구역의 출발 시간보다 앞선 지점이 존재합니다. 시간 순서를 검토해 주세요.');
+        }
+
+        return {
+            score: Math.max(0, score),
+            checks,
+            suggestions,
+            styleCheck
+        };
+    }
+
+    // AI Patterns logic
+    function analyzePatternsClient(patrols) {
+        const completedPatrols = patrols.filter(p => p.status === 'completed');
+        if (completedPatrols.length === 0) {
+            return { insights: [], stats: { totalPatrols: 0, totalPoints: 0, categoryBreakdown: {}, zoneIncidentCounts: {} } };
+        }
+
+        const insights = [];
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const zoneIncidents = {};
+        const zoneMemoMap = {};
+        const zonePatrolCount = {};
+
+        completedPatrols.forEach(p => {
+            (p.points || []).forEach(pt => {
+                const loc = pt.location || '알 수 없음';
+                const zoneCode = pt.code || loc.charAt(0);
+
+                if (!zonePatrolCount[zoneCode]) zonePatrolCount[zoneCode] = { count: 0, name: loc };
+                zonePatrolCount[zoneCode].count++;
+
+                if (pt.memo && pt.memo !== '이상 없음' && pt.memo !== '이상없음' && pt.memo !== '' && pt.memo !== '해안순찰 전 안전교육 실시' && pt.memo !== '내용을 입력해주세요') {
+                    if (!zoneIncidents[zoneCode]) zoneIncidents[zoneCode] = { count: 0, name: loc, memos: [] };
+                    zoneIncidents[zoneCode].count++;
+                    zoneIncidents[zoneCode].memos.push(pt.memo);
+
+                    const classification = classifyMemoClient(pt.memo);
+                    if (!zoneMemoMap[zoneCode]) zoneMemoMap[zoneCode] = {};
+                    zoneMemoMap[zoneCode][classification.category] = (zoneMemoMap[zoneCode][classification.category] || 0) + 1;
+                }
+            });
+        });
+
+        for (const [code, data] of Object.entries(zoneIncidents)) {
+            if (data.count >= 2) {
+                const topCategories = zoneMemoMap[code] ? Object.entries(zoneMemoMap[code]).sort((a, b) => b[1] - a[1]) : [];
+                const topCat = topCategories[0];
+                if (topCat) {
+                    insights.push({
+                        type: 'warning',
+                        icon: '🔄',
+                        title: '반복 발생 패턴 감지',
+                        message: `${data.name.split('(')[0]}에서 '${topCat[0]}' 관련 특이사항이 ${data.count}회 반복 발생하고 있습니다.`,
+                        priority: 'high'
+                    });
+                }
+            }
+        }
+
+        const allZoneCodes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+        const recentPatrols = completedPatrols.filter(p => new Date(p.date) >= thirtyDaysAgo);
+        const recentZoneCounts = {};
+
+        recentPatrols.forEach(p => {
+            (p.points || []).forEach(pt => {
+                const code = pt.code || '';
+                recentZoneCounts[code] = (recentZoneCounts[code] || 0) + 1;
+            });
+        });
+
+        allZoneCodes.forEach(code => {
+            const total = zonePatrolCount[code]?.count || 0;
+            const recent = recentZoneCounts[code] || 0;
+            if (total > 0 && recent === 0) {
+                insights.push({
+                    type: 'info',
+                    icon: '📉',
+                    title: '순찰 빈도 감소',
+                    message: `${zonePatrolCount[code]?.name?.split('(')[0] || code + '구역'}은 최근 30일간 순찰이 실시되지 않았습니다. 순찰 강화를 권고합니다.`,
+                    priority: 'medium'
+                });
+            }
+        });
+
+        const totalCategories = {};
+        completedPatrols.forEach(p => {
+            (p.points || []).forEach(pt => {
+                if (pt.memo && pt.memo !== '이상 없음' && pt.memo !== '이상없음' && pt.memo !== '' && pt.memo !== '해안순찰 전 안전교육 실시' && pt.memo !== '내용을 입력해주세요') {
+                    const cls = classifyMemoClient(pt.memo);
+                    totalCategories[cls.category] = (totalCategories[cls.category] || 0) + 1;
+                }
+            });
+        });
+
+        const sortedCategories = Object.entries(totalCategories).sort((a, b) => b[1] - a[1]);
+        if (sortedCategories.length > 0) {
+            const [topCat, topCount] = sortedCategories[0];
+            insights.push({
+                type: 'success',
+                icon: '📊',
+                title: '주요 활동 분석',
+                message: `전체 순찰 기간 중 '${topCat}' 활동이 ${topCount}건으로 가장 많이 발생하였습니다.`,
+                priority: 'low'
+            });
+        }
+
+        return {
+            insights,
+            stats: {
+                totalPatrols: completedPatrols.length,
+                totalPoints: completedPatrols.reduce((sum, p) => sum + (p.points?.length || 0), 0),
+                categoryBreakdown: totalCategories,
+                zoneIncidentCounts: Object.fromEntries(
+                    Object.entries(zoneIncidents).map(([k, v]) => [k, { count: v.count, name: v.name }])
+                )
+            }
+        };
+    }
+})();
+
+// ═══════════════════════════════════════════
 // GLOBAL STATE
 // ═══════════════════════════════════════════
 const initDate = new Date();
