@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="ORCA - GPS 기반 자동 기록 순찰 일지 작성 에이전트">
+    <meta name="theme-color" content="#0f1a33">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ORCA">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>ORCA</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css?v=1.0.1">
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- ══════════════════════════════════════
+             SCREEN 1: SPLASH
+             ══════════════════════════════════════ -->
+        <div class="screen screen-splash active" id="screenSplash">
+            <div class="splash-bg-pattern"></div>
+            <div class="splash-content">
+                <div class="splash-logo">
+                    <div class="splash-logo-circle">
+                        <img src="logo.png" alt="해양경찰 로고" class="logo-img">
+                    </div>
+                </div>
+                <div class="splash-title">
+                    <h1>해양경찰청</h1>
+                    <p>KOREA COAST GUARD</p>
+                </div>
+                <button class="splash-enter-btn" id="btnSplashEnter" aria-label="시작하기">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 2: LOGIN
+             ══════════════════════════════════════ -->
+        <div class="screen screen-login" id="screenLogin">
+            <div class="login-card">
+                <div class="login-logo">
+                    <img src="logo.png" alt="해양경찰 로고" class="logo-img">
+                </div>
+                <form class="login-form" id="loginForm">
+                    <div class="form-field">
+                        <label for="loginEmail">아이디</label>
+                        <input type="text" id="loginEmail" placeholder="아이디를 입력하세요" autocomplete="username">
+                    </div>
+                    <div class="form-field">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="비밀번호를 입력하세요"
+                            autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="login-btn" id="btnLogin">Sign In</button>
+                    <a href="#" class="login-forgot">Forgot password?</a>
+                </form>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 3: DASHBOARD (HOME)
+             ══════════════════════════════════════ -->
+        <div class="screen screen-dashboard" id="screenDashboard">
+            <header class="app-header premium-dashboard-header">
+                <div class="dashboard-profile-section">
+                    <div class="profile-avatar-box">
+                        <img src="logo.png" alt="해양경찰 로고" class="logo-img">
+                    </div>
+                    <div class="profile-info-text">
+                        <h2 class="app-brand-title">ORCA</h2>
+                        <p class="app-station-subtitle">인천 인항파출소</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-logout" id="btnLogout">로그아웃</button>
+            </header>
+
+            <div class="dashboard-body">
+                <div class="dashboard-greeting-area">
+                    <div class="dashboard-date-str" id="dashboardDateStr">2026년 6월 1일 (월)</div>
+                    <h1 class="dashboard-greeting-title">김민준 경사님, 안녕하세요 👋</h1>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="dashboard-stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">이번 달 순찰</span>
+                        <div class="stat-value-group">
+                            <span class="stat-number" id="dashboardStatMonthlyCount">0</span>
+                            <span class="stat-unit">회</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">총 순찰 시간</span>
+                        <div class="stat-value-group">
+                            <span class="stat-number" id="dashboardStatTotalHours">0</span>
+                            <span class="stat-unit">시간</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">완료 일지</span>
+                        <div class="stat-value-group">
+                            <span class="stat-number" id="dashboardStatCompletedReports">0</span>
+                            <span class="stat-unit">건</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 순찰 요약 섹션 -->
+                <div class="ai-summary-section" id="aiSummarySection">
+                    <div class="ai-section-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">🤖</span>
+                            <span class="ai-badge-text">AI 분석</span>
+                        </div>
+                        <span class="ai-section-subtitle">오늘의 순찰 AI 요약</span>
+                    </div>
+                    <div class="ai-category-grid" id="aiCategoryGrid">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- AI 패턴 인사이트 섹션 -->
+                <div class="ai-insights-section" id="aiInsightsSection">
+                    <div class="ai-section-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">📊</span>
+                            <span class="ai-badge-text">AI 인사이트</span>
+                        </div>
+                        <span class="ai-section-subtitle">순찰 패턴 분석</span>
+                    </div>
+                    <div class="ai-insights-list" id="aiInsightsList">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Start Patrol CTA -->
+                <button type="button" class="dashboard-start-patrol-btn" id="btnDashboardStartPatrol">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round" width="22" height="22">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    새 순찰 시작
+                </button>
+
+                <!-- Recent Records Section -->
+                <div class="dashboard-history-section">
+                    <div class="section-header">
+                        <h3 class="section-title">최근 순찰 기록</h3>
+                        <a href="#" class="view-all-link" id="btnViewAllHistory">전체 보기</a>
+                    </div>
+                    <div class="history-list" id="dashboardHistoryList">
+                        <!-- History cards rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Date selection modal (fallback modal or quick settings modal) ── -->
+        <div class="modal-overlay" id="modalConfirm">
+            <div class="modal-box">
+                <div class="modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                </div>
+                <h3>순찰 설정을 시작하시겠습니까?</h3>
+                <button class="modal-btn" id="btnConfirmStart">시작</button>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 4: SCHEDULE (일정 등록)
+             ══════════════════════════════════════ -->
+        <div class="screen screen-schedule" id="screenSchedule">
+            <header class="app-header premium-header">
+                <button class="back-btn" id="btnScheduleBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round" width="20" height="20">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="app-header-title">순찰 설정</div>
+            </header>
+
+            <div class="schedule-tabs" id="scheduleTabs">
+                <button type="button" class="tab-btn active" data-tab="date">날짜 선택</button>
+                <button type="button" class="tab-btn" data-tab="members">출동 인원</button>
+                <button type="button" class="tab-btn" data-tab="patrolType">순찰 종류</button>
+                <button type="button" class="tab-btn" data-tab="zones">순찰 구역</button>
+            </div>
+
+            <div class="schedule-body">
+                <!-- Tab 1: Date Select -->
+                <div class="tab-content hidden" id="tabContentDate">
+                    <div class="calendar-mini-container">
+                        <div class="calendar-month-nav">
+                            <button type="button" class="month-nav-btn" id="btnPrevMonth">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <div class="calendar-month-title" id="calendarMonthTitle">6월</div>
+                            <button type="button" class="month-nav-btn" id="btnNextMonth">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18"
+                                    height="18">
+                                    <polyline points="9 6 15 12 9 18"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+                        </div>
+                        <div class="calendar-grid" id="calendarGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Dispatch Members -->
+                <div class="tab-content" id="tabContentMembers">
+                    <h3 class="setup-sub-title">출동 인원을 선택하세요 (복수 선택 가능)</h3>
+                    <div class="personnel-list" id="personnelList">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <button type="button" class="next-step-btn" id="btnToPatrolTypeTab">
+                        다음 단계 →
+                    </button>
+                </div>
+
+                <!-- Tab 3: Patrol Type -->
+                <div class="tab-content hidden" id="tabContentPatrolType">
+                    <h3 class="setup-sub-title">순찰 종류를 선택하세요</h3>
+                    <div class="patrol-type-list" id="patrolTypeList">
+                        <div class="patrol-type-card" data-type="해안" id="patrolTypeCoastal">
+                            <div class="patrol-type-icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28"
+                                    height="28">
+                                    <path d="M3 17h1l2-3 2 3h2l2-3 2 3h2l2-3 2 3h1"></path>
+                                    <path d="M5 21h14"></path>
+                                    <path d="M12 3v4"></path>
+                                    <path d="M12 7l-3 3h6l-3-3z"></path>
+                                </svg>
+                            </div>
+                            <div class="patrol-type-info">
+                                <span class="patrol-type-name">해안 순찰</span>
+                                <span class="patrol-type-desc">해안 코스, 도보 및 순찰차 코스 순찰</span>
+                            </div>
+                            <div class="patrol-type-check"></div>
+                        </div>
+                        <div class="patrol-type-card" data-type="해상" id="patrolTypeMaritime">
+                            <div class="patrol-type-icon-box">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28"
+                                    height="28">
+                                    <path
+                                        d="M2 20l.76-1.77a8.83 8.83 0 0 1 4.53-4.33l.84-.35a2 2 0 0 1 1.74 0l.84.35a8.83 8.83 0 0 0 4.53.71h.12a8.83 8.83 0 0 0 4.53-.71L22 13">
+                                    </path>
+                                    <path d="M12 4V2"></path>
+                                    <path d="M12 4l-3 4h6l-3-4z"></path>
+                                    <path d="M9 8v4"></path>
+                                    <path d="M15 8v4"></path>
+                                </svg>
+                            </div>
+                            <div class="patrol-type-info">
+                                <span class="patrol-type-name">해상 순찰</span>
+                                <span class="patrol-type-desc">해상 코스, 순찰정 코스 순찰</span>
+                            </div>
+                            <div class="patrol-type-check"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="next-step-btn" id="btnToZonesTab">
+                        다음 단계 →
+                    </button>
+                </div>
+
+                <!-- Tab 4: Patrol Zones -->
+                <div class="tab-content hidden" id="tabContentZones">
+                    <h3 class="setup-sub-title">추천 코스 선택</h3>
+                    <div class="course-chips-container" id="courseChips">
+                        <!-- Rendered by JS based on patrol type -->
+                    </div>
+
+                    <h3 class="setup-sub-title" style="margin-top: 24px;">순찰 구역을 선택하세요</h3>
+                    <div class="zones-list" id="zonesList">
+                        <!-- Rendered by JS -->
+                    </div>
+                    <button type="button" class="start-patrol-action-btn" id="btnStartPatrolReal">순찰 시작</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 5-6: PATROL (순찰 진행)
+             ══════════════════════════════════════ -->
+        <div class="screen screen-patrol" id="screenPatrol">
+            <header class="app-header patrol-active-header">
+                <button class="back-btn" id="btnPatrolBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round" width="20" height="20">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="patrol-active-info">
+                    <div class="patrol-active-title">순찰 진행 중</div>
+                    <div class="patrol-active-officers" id="patrolActiveOfficers">경사 김민준 · 순경 박서연</div>
+                </div>
+                <div class="patrol-active-timer">
+                    <div class="timer-label">경과 시간</div>
+                    <div class="timer-value" id="patrolTimerVal">00:08</div>
+                </div>
+            </header>
+
+            <!-- Map Area -->
+            <div class="patrol-map-container-premium">
+                <div id="patrolMap"></div>
+
+                <div class="patrol-map-legend">
+                    <span class="legend-item completed"><span class="legend-dot"></span> 완료</span>
+                    <span class="legend-item current"><span class="legend-dot"></span> 현재</span>
+                    <span class="legend-item upcoming"><span class="legend-dot"></span> 예정</span>
+                </div>
+            </div>
+
+            <!-- Patrol Progress -->
+            <div class="patrol-progress-section">
+                <div class="progress-header">
+                    <span>순찰 진행률</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <span id="patrolProgressRatio" style="font-weight: 700;">0/3 구역</span>
+                        <span id="patrolEstimatedCompletion" style="font-size: 11px; color: var(--navy-300); margin-top: 2px;">예상 완료 시간: 계산 중...</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="patrolProgressBarFill" style="width: 0%;"></div>
+                </div>
+            </div>
+
+            <!-- Patrol Zone List (scrollable area in middle) -->
+            <div class="patrol-zone-list-container">
+                <div class="patrol-list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 class="patrol-list-title" style="margin: 0;">순찰 구역 목록</h3>
+                    <button type="button" id="btnPatrolAddZone" style="background: var(--navy-900); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background-color 0.2s;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        구역 추가
+                    </button>
+                </div>
+                
+                <div class="patrol-zone-groups">
+                    <div class="patrol-zone-group">
+                        <h4 class="group-title" style="font-size: 12px; color: var(--navy-500); margin: 8px 0; font-weight: 600;">방문 완료 지점</h4>
+                        <div class="patrol-list-items" id="patrolListCompletedItems">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </div>
+                    <div class="patrol-zone-group" style="margin-top: 14px;">
+                        <h4 class="group-title" style="font-size: 12px; color: var(--navy-500); margin: 8px 0; font-weight: 600;">미방문 지점</h4>
+                        <div class="patrol-list-items" id="patrolListUpcomingItems">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Point Float Action Button -->
+            <div class="add-point-btn-container hidden" id="btnAddPointContainer">
+                <button class="add-point-btn" id="btnAddPoint" title="순찰 포인트 추가">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24"
+                        height="24">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Bottom Sheet Modal overlay -->
+            <div class="memo-bottom-sheet" id="memoBottomSheet">
+                <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+                <div class="bottom-sheet-content">
+                    <h3 class="sheet-title">특이사항 메모 입력</h3>
+
+                    <div class="quick-tags-container" id="quickTags">
+                        <button type="button" class="quick-tag" data-tag="이상 없음">이상 없음</button>
+                        <button type="button" class="quick-tag" data-tag="낚시객 안전계도 실시">안전계도</button>
+                        <button type="button" class="quick-tag" data-tag="방파제 테트라포드 균열 발견">위험요소 발견</button>
+                        <button type="button" class="quick-tag" data-tag="주민 소음 민원 대응 완료">민원 대응</button>
+                        <button type="button" class="quick-tag" data-tag="구명환 등 안전 시설 점검 완료">시설 점검</button>
+                        <button type="button" class="quick-tag" data-tag="금지구역 불법 낚시 단속 활동">단속 활동</button>
+                    </div>
+
+                    <div class="sheet-input-group">
+                        <textarea id="sheetMemoInput" placeholder="특이사항을 입력하세요..."></textarea>
+                    </div>
+
+                    <!-- AI 실시간 분류 뱃지 -->
+                    <div class="ai-memo-classify" id="aiMemoClassify">
+                        <span class="ai-classify-label">🤖 AI 분류:</span>
+                        <span class="ai-classify-badge" id="aiClassifyBadge">입력 대기 중</span>
+                    </div>
+
+                    <button type="button" class="sheet-action-btn" id="btnSheetNextZone">다음 구역으로 이동</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 7: PATROL END (순찰 종료 요약)
+             ══════════════════════════════════════ -->
+        <div class="screen screen-patrol-end" id="screenPatrolEnd">
+            <header class="app-header">
+                <button class="back-btn" id="btnPatrolEndBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="app-header-logo">
+                    <img src="logo.png" alt="해양경찰 로고" class="logo-img">
+                </div>
+                <div class="app-header-text">
+                    <div class="org-line">해양경찰청 중부지방해양경찰청</div>
+                    <div class="station-name">인천해양경찰서 인항파출소</div>
+                </div>
+            </header>
+
+            <div class="patrol-header" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <select class="patrol-log-select" style="margin-right: 0;">
+                    <option id="patrolEndLogOption">5월 26일 순찰일지</option>
+                </select>
+                <button type="button" class="btn-edit-patrol-date" id="btnEditPatrolDate" title="순찰 날짜 수정"
+                    style="background: none; border: none; color: var(--navy-300); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M12 20h9"></path>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="patrol-end-body">
+                <!-- Map replay -->
+                <div class="patrol-map-container">
+                    <div id="patrolEndMap"></div>
+                </div>
+
+                <!-- AI 품질 점검 알림 -->
+                <div class="ai-quality-section" id="aiQualitySection">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- AI 자동 생성 순찰일지 -->
+                <div class="ai-report-section" id="aiReportSection">
+                    <div class="ai-report-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">🤖</span>
+                            <span class="ai-badge-text">AI 작성</span>
+                        </div>
+                        <span class="ai-report-label">AI 자동 생성 순찰일지</span>
+                    </div>
+                    <div class="ai-report-content" id="aiReportContent">
+                        <div class="ai-typing-placeholder">AI가 순찰일지를 작성하고 있습니다...</div>
+                    </div>
+                    <div class="ai-classifications" id="aiClassifications">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="patrol-end-summary" id="patrolEndSummary">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- Detail Timeline -->
+                <div class="patrol-end-timeline" id="patrolEndTimeline">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="patrol-end-actions">
+                    <button class="patrol-end-btn secondary" id="btnPatrolEndToReport">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14,2 14,8 20,8" />
+                        </svg>
+                        보고서 미리보기
+                    </button>
+                    <button class="patrol-end-btn print-accent-btn" id="btnPatrolEndPrint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 6 2 18 2 18 9" />
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                            <rect x="6" y="14" width="12" height="8" />
+                        </svg>
+                        인쇄 및 PDF 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════
+             SCREEN 8: REPORT PREVIEW (보고서 미리보기)
+             ══════════════════════════════════════ -->
+        <div class="screen screen-report" id="screenReport">
+            <header class="app-header">
+                <button class="back-btn" id="btnReportBack">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="app-header-logo">
+                    <img src="logo.png" alt="해양경찰 로고" class="logo-img">
+                </div>
+                <div class="app-header-text">
+                    <div class="org-line">해양경찰청 중부지방해양경찰청</div>
+                    <div class="station-name">인천해양경찰서 인항파출소</div>
+                </div>
+            </header>
+
+            <div class="report-body" id="reportBody">
+                <div class="report-title" id="reportTitle">5월 26일 - 보고서 미리보기</div>
+
+                <!-- Report Fields -->
+                <div class="report-field">
+                    <div>
+                        <div class="report-field-label">인원</div>
+                        <div class="report-field-value" id="reportMembers">경사 홍길동, 경장 윤봉길, 순경 안중근</div>
+                    </div>
+                    <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                </div>
+
+                <div class="report-field">
+                    <div>
+                        <div class="report-field-label">시간</div>
+                        <div class="report-field-value" id="reportTime">09:50~11:05</div>
+                    </div>
+                    <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                    </svg>
+                </div>
+
+                <div class="report-field">
+                    <div>
+                        <div class="report-field-label">장소</div>
+                        <div class="report-field-value" id="reportPlaces">인항파출소→연안부두→여객선검문소→인항파출소</div>
+                    </div>
+                    <svg class="edit-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                    </svg>
+                </div>
+
+                <!-- Activity Cards -->
+                <div class="report-activities" id="reportActivities">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- Export Button -->
+                <div class="report-actions-container">
+                    <button class="report-print-btn" id="btnReportPrint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 6 2 18 2 18 9" />
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                            <rect x="6" y="14" width="12" height="8" />
+                        </svg>
+                        인쇄 및 PDF 저장 (Mac/모바일)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Time Edit Overlay (Figma Modal) -->
+    <div class="time-edit-overlay" id="timeEditOverlay">
+        <div class="time-edit-popup">
+            <div class="time-edit-header">시간 수정</div>
+            <div class="time-edit-body">
+                <div class="time-edit-group">
+                    <label>시작 시간</label>
+                    <div class="time-select-row">
+                        <select id="selectStartHour">
+                            <option value="01">01시</option>
+                            <option value="02">02시</option>
+                            <option value="03">03시</option>
+                            <option value="04">04시</option>
+                            <option value="05">05시</option>
+                            <option value="06">06시</option>
+                            <option value="07">07시</option>
+                            <option value="08">08시</option>
+                            <option value="09">09시</option>
+                            <option value="10">10시</option>
+                            <option value="11">11시</option>
+                            <option value="12">12시</option>
+                        </select>
+                        <select id="selectStartMin">
+                            <!-- Populated dynamically (00~59) -->
+                        </select>
+                        <select id="selectStartAmpm">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="time-edit-group">
+                    <label>종료 시간</label>
+                    <div class="time-select-row">
+                        <select id="selectEndHour">
+                            <option value="01">01시</option>
+                            <option value="02">02시</option>
+                            <option value="03">03시</option>
+                            <option value="04">04시</option>
+                            <option value="05">05시</option>
+                            <option value="06">06시</option>
+                            <option value="07">07시</option>
+                            <option value="08">08시</option>
+                            <option value="09">09시</option>
+                            <option value="10">10시</option>
+                            <option value="11">11시</option>
+                            <option value="12">12시</option>
+                        </select>
+                        <select id="selectEndMin">
+                            <!-- Populated dynamically (00~59) -->
+                        </select>
+                        <select id="selectEndAmpm">
+                            <option value="AM">AM</option>
+                            <option value="PM">PM</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="time-edit-footer">
+                <button class="time-edit-btn-cancel" id="btnTimeEditCancel">취소</button>
+                <button class="time-edit-btn-submit" id="btnTimeEditSubmit">수정 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ZONE ADD POPUP (구역 추가 팝업)
+         ══════════════════════════════════════ -->
+    <div class="time-edit-overlay" id="zoneAddOverlay" style="z-index: 10000;">
+        <div class="time-edit-popup" style="max-width: 340px; width: 90%;">
+            <div class="time-edit-header" style="background: var(--navy-900); color: var(--white); padding: 16px; font-size: 15px; font-weight: 700; text-align: center; position: relative;">
+                <h3>순찰 구역 추가</h3>
+                <button type="button" class="close-btn" id="btnZoneAddCancel" style="position: absolute; right: 16px; top: 12px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <div class="time-edit-body" style="padding: 20px;">
+                <p style="font-size: 13px; color: var(--navy-300); margin-bottom: 16px; line-height: 1.4;">추가할 순찰 구역을 선택해 주세요. 현재 등록되지 않은 구역만 표시됩니다.</p>
+                <div class="time-edit-group" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--navy-900);">순찰 구역 선택</label>
+                    <select id="selectNewZone" style="width: 100%; padding: 10px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 14px; background-color: var(--card-bg); color: var(--navy-900); outline: none;">
+                        <!-- Options populated dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="time-edit-footer" style="padding: 16px 20px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color);">
+                <button type="button" class="time-edit-btn-cancel" id="btnZoneAddClose" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 14px; cursor: pointer; border: 1px solid var(--border-color); background: white; color: var(--navy-900);">취소</button>
+                <button type="button" class="time-edit-btn-submit" id="btnZoneAddSubmit" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 14px; background-color: var(--navy-900); color: white; border: none; cursor: pointer;">추가 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js?v=1.0.1"></script>
+</body>
+
+</html>
