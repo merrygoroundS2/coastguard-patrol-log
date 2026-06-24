@@ -1351,13 +1351,39 @@ function bindGlobalEvents() {
         navigateTo('Schedule');
     });
 
-    // Bottom Sheet Handle Toggle (클릭 시 숨기기/보이기)
-    safeBind('#bottomSheetHandle', 'click', () => {
+    // Bottom Sheet Header Toggle & Swipe Gestures (터치 드래그 및 헤더 클릭)
+    try {
+        const sheetHeader = $('#bottomSheetHeader');
         const sheet = $('#memoBottomSheet');
-        if (sheet) {
-            sheet.classList.toggle('collapsed');
+        
+        if (sheetHeader && sheet) {
+            sheetHeader.addEventListener('click', (e) => {
+                if (e.target.closest('#sheetMemoInput') || e.target.closest('.quick-tag')) return;
+                sheet.classList.toggle('collapsed');
+            });
+
+            let touchStartY = 0;
+            let touchEndY = 0;
+
+            sheetHeader.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            }, { passive: true });
+
+            sheetHeader.addEventListener('touchend', (e) => {
+                touchEndY = e.changedTouches[0].clientY;
+                const swipeDistance = touchEndY - touchStartY;
+                const threshold = 40;
+
+                if (swipeDistance > threshold) {
+                    sheet.classList.add('collapsed');
+                } else if (swipeDistance < -threshold) {
+                    sheet.classList.remove('collapsed');
+                }
+            }, { passive: true });
         }
-    });
+    } catch (err) {
+        console.error('Failed to bind bottom sheet header events:', err);
+    }
 
     // Setup Tabs switching
     try {

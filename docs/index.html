@@ -16,7 +16,7 @@
     <link rel="apple-touch-icon" href="/icons/icon-192.png">
     <link rel="icon" type="image/png" href="/icons/icon-192.png">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="style.css?v=1.0.2">
+    <link rel="stylesheet" href="style.css?v=1.0.3">
 </head>
 
 <body>
@@ -391,9 +391,18 @@
 
             <!-- Bottom Sheet Modal overlay -->
             <div class="memo-bottom-sheet" id="memoBottomSheet">
-                <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
+                <div class="bottom-sheet-header" id="bottomSheetHeader" style="cursor: pointer; padding: 4px 0 8px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; border-bottom: 1px solid rgba(0,0,0,0.04); margin-bottom: 8px;">
+                    <div class="bottom-sheet-handle" id="bottomSheetHandle" style="margin: 0 auto;"></div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <h3 class="sheet-title" style="margin: 0; font-size: 14px; font-weight: 700; color: #1e293b;">특이사항 메모 입력</h3>
+                        <button type="button" class="btn-sheet-toggle" id="btnSheetToggle" style="background: none; border: none; padding: 4px; cursor: pointer; color: var(--navy-500); display: flex; align-items: center;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" style="transition: transform 0.3s ease;">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
                 <div class="bottom-sheet-content">
-                    <h3 class="sheet-title">특이사항 메모 입력</h3>
 
                     <div class="quick-tags-container" id="quickTags">
                         <button type="button" class="quick-tag" data-tag="이상 없음">이상 없음</button>
@@ -684,7 +693,7 @@
 
     <!-- Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="app.js?v=1.0.2"></script>
+    <script src="app.js?v=1.0.3"></script>
 </body>
 
 </html>

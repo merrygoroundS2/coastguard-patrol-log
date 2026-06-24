@@ -2964,7 +2964,7 @@ button {
     height: 4px;
     background: #cbd5e1;
     border-radius: 2px;
-    margin: 0 auto 4px auto;
+    margin: 0 auto;
     cursor: pointer;
     padding: 8px 0;
     background-clip: content-box;
@@ -2976,9 +2976,13 @@ button {
     background-clip: content-box;
 }
 
-/* Collapsed state: slide the content down, leaving only the handle visible */
+/* Collapsed state: slide the content down, leaving the header visible */
 .memo-bottom-sheet.collapsed {
-    transform: translateY(calc(100% - 28px));
+    transform: translateY(calc(100% - 60px));
+}
+
+.memo-bottom-sheet.collapsed .btn-sheet-toggle svg {
+    transform: rotate(180deg);
 }
 
 .memo-bottom-sheet.collapsed .bottom-sheet-content {
