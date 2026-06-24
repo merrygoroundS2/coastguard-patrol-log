@@ -1,141 +1,5 @@
 [
   {
-    "id": "5b752cdd-4167-40fe-8ea4-92bd0febb96e",
-    "date": "2026-06-01",
-    "members": [
-      "경사 김민준",
-      "순경 박서연"
-    ],
-    "course": "해안1코스",
-    "coursePoints": [
-      {
-        "name": "A구역(인항파출소 및 전용부두)",
-        "lat": 37.4579,
-        "lng": 126.5986
-      },
-      {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
-      },
-      {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
-      },
-      {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
-      }
-    ],
-    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
-    "status": "completed",
-    "points": [
-      {
-        "id": "pt-0-1780291182189",
-        "location": "A구역(인항파출소 및 전용부두)",
-        "code": "A",
-        "detail": "인항파출소 및 전용부두",
-        "lat": 37.4579,
-        "lng": 126.5986,
-        "arrivalTime": "14:19",
-        "departureTime": "14:19",
-        "memo": "주취자",
-        "completed": true
-      },
-      {
-        "id": "pt-1-1780291182189",
-        "location": "C구역(월미도 및 월미산책로)",
-        "code": "C",
-        "detail": "월미도 및 월미산책로",
-        "lat": 37.472,
-        "lng": 126.596,
-        "arrivalTime": "14:19",
-        "departureTime": "14:20",
-        "memo": "이상 없음",
-        "completed": true
-      },
-      {
-        "id": "pt-2-1780291182189",
-        "location": "D구역(북성포구 및 만석부두)",
-        "code": "D",
-        "detail": "북성포구 및 만석부두",
-        "lat": 37.481,
-        "lng": 126.608,
-        "arrivalTime": "14:20",
-        "departureTime": "14:20",
-        "memo": "소음신고",
-        "completed": true
-      },
-      {
-        "id": "pt-3-1780291182189",
-        "location": "E구역(화수부두 및 인천내항)",
-        "code": "E",
-        "detail": "화수부두 및 인천내항",
-        "lat": 37.487,
-        "lng": 126.621,
-        "arrivalTime": "14:20",
-        "departureTime": "14:20",
-        "memo": "기타",
-        "completed": true
-      }
-    ],
-    "summary": {
-      "totalDistance": 4,
-      "totalTime": 1,
-      "patrolMethod": "도보 및 차량",
-      "patrolCount": "4곳"
-    },
-    "createdAt": "2026-06-01T05:19:42.184Z",
-    "updatedAt": "2026-06-01T05:20:04.654Z"
-  },
-  {
-    "id": "35a7f848-5c52-4a75-a560-16d938c427bb",
-    "date": "2026-06-01",
-    "members": [
-      "경사 김민준",
-      "순경 박서연"
-    ],
-    "course": "해상1코스",
-    "coursePoints": [
-      {
-        "name": "A구역(인항파출소 및 전용부두)",
-        "lat": 37.4579,
-        "lng": 126.5986
-      },
-      {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
-      },
-      {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
-      },
-      {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
-      },
-      {
-        "name": "H구역(영종대교 및 물치도)",
-        "lat": 37.545,
-        "lng": 126.598
-      }
-    ],
-    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
-    "status": "in_progress",
-    "points": [],
-    "summary": {
-      "totalDistance": 0,
-      "totalTime": 0,
-      "patrolMethod": "도보 및 차량"
-    },
-    "createdAt": "2026-06-02T06:04:01.361Z"
-  },
-  {
     "id": "f5e9c85c-25f5-47d3-9880-e29821efd436",
     "date": "2026-06-01",
     "members": [
@@ -244,321 +108,14 @@
     "updatedAt": "2026-06-02T06:05:40.070Z"
   },
   {
-    "id": "c015c751-1ed3-4134-b6ca-805e9d885588",
-    "date": "2026-06-01",
+    "id": "8364ecaa-1d81-42ca-b5d2-db0a659d15ce",
+    "date": "2026-06-22",
     "members": [
       "경사 김민준",
-      "순경 박서연"
+      "순경 박서연",
+      "경장 이지훈"
     ],
-    "course": "해상1코스",
-    "coursePoints": [
-      {
-        "name": "A구역(인항파출소 및 전용부두)",
-        "lat": 37.4579,
-        "lng": 126.5986
-      },
-      {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
-      },
-      {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
-      },
-      {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
-      },
-      {
-        "name": "H구역(영종대교 및 물치도)",
-        "lat": 37.545,
-        "lng": 126.598
-      }
-    ],
-    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
-    "status": "completed",
-    "points": [
-      {
-        "id": "pt-0-1780380500020",
-        "location": "A구역(인항파출소 및 전용부두)",
-        "code": "A",
-        "detail": "인항파출소 및 전용부두",
-        "lat": 37.4579,
-        "lng": 126.5986,
-        "arrivalTime": "15:08",
-        "departureTime": "15:08",
-        "memo": "해안순찰 전 안전교육 실시",
-        "completed": true
-      },
-      {
-        "id": "pt-1-1780380500020",
-        "location": "C구역(월미도 및 월미산책로)",
-        "code": "C",
-        "detail": "월미도 및 월미산책로",
-        "lat": 37.472,
-        "lng": 126.596,
-        "arrivalTime": "15:08",
-        "departureTime": "15:08",
-        "memo": "주취자",
-        "completed": true
-      },
-      {
-        "id": "pt-2-1780380500020",
-        "location": "D구역(북성포구 및 만석부두)",
-        "code": "D",
-        "detail": "북성포구 및 만석부두",
-        "lat": 37.481,
-        "lng": 126.608,
-        "arrivalTime": "15:08",
-        "departureTime": "15:08",
-        "memo": "불법주차",
-        "completed": true
-      },
-      {
-        "id": "pt-3-1780380500020",
-        "location": "E구역(화수부두 및 인천내항)",
-        "code": "E",
-        "detail": "화수부두 및 인천내항",
-        "lat": 37.487,
-        "lng": 126.621,
-        "arrivalTime": "15:08",
-        "departureTime": "15:08",
-        "memo": "소음신고",
-        "completed": true
-      },
-      {
-        "id": "pt-4-1780380500020",
-        "location": "H구역(영종대교 및 물치도)",
-        "code": "H",
-        "detail": "영종대교 및 물치도",
-        "lat": 37.545,
-        "lng": 126.598,
-        "arrivalTime": "15:08",
-        "departureTime": "15:08",
-        "memo": "이상 없음",
-        "completed": true
-      }
-    ],
-    "summary": {
-      "totalDistance": 5,
-      "totalTime": 2,
-      "patrolMethod": "도보 및 차량",
-      "patrolCount": "5곳"
-    },
-    "createdAt": "2026-06-02T06:08:20.016Z",
-    "updatedAt": "2026-06-02T06:08:25.800Z"
-  },
-  {
-    "id": "db296934-c300-4c9b-82ca-caa109354399",
-    "date": "2026-06-02",
-    "members": [
-      "경사 김민준",
-      "순경 박서연"
-    ],
-    "course": "해안1코스",
-    "coursePoints": [
-      {
-        "name": "A구역(인항파출소 및 전용부두)",
-        "lat": 37.4579,
-        "lng": 126.5986
-      },
-      {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
-      },
-      {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
-      },
-      {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
-      }
-    ],
-    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
-    "status": "completed",
-    "points": [
-      {
-        "id": "pt-0-1780380677831",
-        "location": "A구역(인항파출소 및 전용부두)",
-        "code": "A",
-        "detail": "인항파출소 및 전용부두",
-        "lat": 37.4579,
-        "lng": 126.5986,
-        "arrivalTime": "15:11",
-        "departureTime": "15:11",
-        "memo": "해안순찰 전 안전교육 실시",
-        "completed": true
-      },
-      {
-        "id": "pt-1-1780380677831",
-        "location": "C구역(월미도 및 월미산책로)",
-        "code": "C",
-        "detail": "월미도 및 월미산책로",
-        "lat": 37.472,
-        "lng": 126.596,
-        "arrivalTime": "15:11",
-        "departureTime": "15:11",
-        "memo": "이상 없음",
-        "completed": true
-      },
-      {
-        "id": "pt-2-1780380677831",
-        "location": "D구역(북성포구 및 만석부두)",
-        "code": "D",
-        "detail": "북성포구 및 만석부두",
-        "lat": 37.481,
-        "lng": 126.608,
-        "arrivalTime": "15:11",
-        "departureTime": "15:11",
-        "memo": "이상 없음",
-        "completed": true
-      },
-      {
-        "id": "pt-3-1780380677831",
-        "location": "E구역(화수부두 및 인천내항)",
-        "code": "E",
-        "detail": "화수부두 및 인천내항",
-        "lat": 37.487,
-        "lng": 126.621,
-        "arrivalTime": "15:11",
-        "departureTime": "15:11",
-        "memo": "이상 없음",
-        "completed": true
-      }
-    ],
-    "summary": {
-      "totalDistance": 4,
-      "totalTime": 2,
-      "patrolMethod": "도보 및 차량",
-      "patrolCount": "4곳"
-    },
-    "createdAt": "2026-06-02T06:11:17.821Z",
-    "updatedAt": "2026-06-02T06:11:22.089Z"
-  },
-  {
-    "id": "a7e7a012-f351-4b90-a20b-24d0b17f8e58",
-    "date": "2026-06-02",
-    "members": [
-      "경사 김민준",
-      "순경 박서연"
-    ],
-    "course": "해상1코스",
-    "coursePoints": [
-      {
-        "name": "A구역(인항파출소 및 전용부두)",
-        "lat": 37.4579,
-        "lng": 126.5986
-      },
-      {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
-      },
-      {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
-      },
-      {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
-      },
-      {
-        "name": "H구역(영종대교 및 물치도)",
-        "lat": 37.545,
-        "lng": 126.598
-      }
-    ],
-    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
-    "status": "completed",
-    "points": [
-      {
-        "id": "pt-0-1780380897101",
-        "location": "A구역(인항파출소 및 전용부두)",
-        "code": "A",
-        "detail": "인항파출소 및 전용부두",
-        "lat": 37.4579,
-        "lng": 126.5986,
-        "arrivalTime": "15:14",
-        "departureTime": "15:14",
-        "memo": "해안순찰 전 안전교육 실시",
-        "completed": true
-      },
-      {
-        "id": "pt-1-1780380897101",
-        "location": "C구역(월미도 및 월미산책로)",
-        "code": "C",
-        "detail": "월미도 및 월미산책로",
-        "lat": 37.472,
-        "lng": 126.596,
-        "arrivalTime": "15:14",
-        "departureTime": "15:15",
-        "memo": "주취자",
-        "completed": true
-      },
-      {
-        "id": "pt-2-1780380897101",
-        "location": "D구역(북성포구 및 만석부두)",
-        "code": "D",
-        "detail": "북성포구 및 만석부두",
-        "lat": 37.481,
-        "lng": 126.608,
-        "arrivalTime": "15:15",
-        "departureTime": "15:15",
-        "memo": "불법주차",
-        "completed": true
-      },
-      {
-        "id": "pt-3-1780380897101",
-        "location": "E구역(화수부두 및 인천내항)",
-        "code": "E",
-        "detail": "화수부두 및 인천내항",
-        "lat": 37.487,
-        "lng": 126.621,
-        "arrivalTime": "15:15",
-        "departureTime": "15:15",
-        "memo": "소음신고",
-        "completed": true
-      },
-      {
-        "id": "pt-4-1780380897101",
-        "location": "H구역(영종대교 및 물치도)",
-        "code": "H",
-        "detail": "영종대교 및 물치도",
-        "lat": 37.545,
-        "lng": 126.598,
-        "arrivalTime": "15:15",
-        "departureTime": "15:15",
-        "memo": "기타",
-        "completed": true
-      }
-    ],
-    "summary": {
-      "totalDistance": 5,
-      "totalTime": 1,
-      "patrolMethod": "도보 및 차량",
-      "patrolCount": "5곳"
-    },
-    "createdAt": "2026-06-02T06:14:57.092Z",
-    "updatedAt": "2026-06-02T06:15:08.023Z"
-  },
-  {
-    "id": "a12b788d-20d1-4cd3-b24d-df93768c6721",
-    "date": "2026-06-02",
-    "members": [
-      "경사 김민준",
-      "경장 이지훈",
-      "순경 박서연"
-    ],
-    "course": "해안2코스",
+    "course": "해상2코스",
     "coursePoints": [
       {
         "name": "A구역(인항파출소 및 전용부두)",
@@ -585,72 +142,72 @@
     "status": "completed",
     "points": [
       {
-        "id": "pt-0-1780380978327",
+        "id": "pt-0-1782110032245",
         "location": "A구역(인항파출소 및 전용부두)",
         "code": "A",
         "detail": "인항파출소 및 전용부두",
         "lat": 37.4579,
         "lng": 126.5986,
-        "arrivalTime": "15:16",
-        "departureTime": "15:16",
+        "arrivalTime": "15:33",
+        "departureTime": "15:33",
         "memo": "해안순찰 전 안전교육 실시",
         "completed": true
       },
       {
-        "id": "pt-1-1780380978327",
+        "id": "pt-1-1782110032245",
         "location": "B구역(연안부두 및 터미널)",
         "code": "B",
         "detail": "연안부두 및 터미널",
         "lat": 37.4536,
         "lng": 126.5982,
-        "arrivalTime": "15:16",
-        "departureTime": "15:16",
-        "memo": "주취자",
+        "arrivalTime": "15:33",
+        "departureTime": "15:34",
+        "memo": "주취자 2명 발견",
         "completed": true
       },
       {
-        "id": "pt-2-1780380978327",
+        "id": "pt-2-1782110032245",
         "location": "F구역(석탄부두 및 남항부두)",
         "code": "F",
         "detail": "석탄부두 및 남항부두",
         "lat": 37.442,
         "lng": 126.602,
-        "arrivalTime": "15:16",
-        "departureTime": "15:16",
-        "memo": "불법주차",
+        "arrivalTime": "15:34",
+        "departureTime": "15:34",
+        "memo": "불법주차 차량 단속조취",
         "completed": true
       },
       {
-        "id": "pt-3-1780380978327",
+        "id": "pt-3-1782110032245",
         "location": "G구역(국제여객터미널 및 송도)",
         "code": "G",
         "detail": "국제여객터미널 및 송도",
         "lat": 37.426,
         "lng": 126.599,
-        "arrivalTime": "15:16",
-        "departureTime": "15:16",
-        "memo": "이상 없음",
+        "arrivalTime": "15:34",
+        "departureTime": "15:34",
+        "memo": "오토바이 소음신고로 인해 방문",
         "completed": true
       }
     ],
     "summary": {
       "totalDistance": 4,
-      "totalTime": 2,
+      "totalTime": 1,
       "patrolMethod": "도보 및 차량",
       "patrolCount": "4곳"
     },
-    "createdAt": "2026-06-02T06:16:18.323Z",
-    "updatedAt": "2026-06-02T06:17:06.363Z"
+    "createdAt": "2026-06-22T06:33:52.239Z",
+    "updatedAt": "2026-06-22T06:34:31.871Z"
   },
   {
-    "id": "530dee45-04c4-4291-bc00-20e0ca1e2d50",
-    "date": "2026-06-02",
+    "id": "53d1040b-fa98-462d-ac05-3a093361d697",
+    "date": "2026-06-23",
     "members": [
-      "경사 김민준",
-      "순경 박서연",
+      "경위 정현우",
+      "순경 최수아",
       "경장 이지훈"
     ],
-    "course": "해안1코스",
+    "course": "해상2코스",
     "coursePoints": [
       {
         "name": "A구역(인항파출소 및 전용부두)",
@@ -658,71 +215,71 @@
         "lng": 126.5986
       },
       {
-        "name": "C구역(월미도 및 월미산책로)",
-        "lat": 37.472,
-        "lng": 126.596
+        "name": "B구역(연안부두 및 터미널)",
+        "lat": 37.4536,
+        "lng": 126.5982
       },
       {
-        "name": "D구역(북성포구 및 만석부두)",
-        "lat": 37.481,
-        "lng": 126.608
+        "name": "F구역(석탄부두 및 남항부두)",
+        "lat": 37.442,
+        "lng": 126.602
       },
       {
-        "name": "E구역(화수부두 및 인천내항)",
-        "lat": 37.487,
-        "lng": 126.621
+        "name": "G구역(국제여객터미널 및 송도)",
+        "lat": 37.426,
+        "lng": 126.599
       }
     ],
     "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
     "status": "completed",
     "points": [
       {
-        "id": "pt-0-1780381213154",
+        "id": "pt-0-1782200558703",
         "location": "A구역(인항파출소 및 전용부두)",
         "code": "A",
         "detail": "인항파출소 및 전용부두",
         "lat": 37.4579,
         "lng": 126.5986,
-        "arrivalTime": "15:20",
-        "departureTime": "15:20",
-        "memo": "해안순찰 전 안전교육 실시",
-        "completed": true
+        "arrivalTime": "16:42",
+        "departureTime": "",
+        "memo": "내용을 입력해주세요",
+        "completed": false
       },
       {
-        "id": "pt-1-1780381213154",
-        "location": "C구역(월미도 및 월미산책로)",
-        "code": "C",
-        "detail": "월미도 및 월미산책로",
-        "lat": 37.472,
-        "lng": 126.596,
-        "arrivalTime": "15:20",
-        "departureTime": "15:20",
-        "memo": "주취자",
-        "completed": true
+        "id": "pt-1-1782200558703",
+        "location": "B구역(연안부두 및 터미널)",
+        "code": "B",
+        "detail": "연안부두 및 터미널",
+        "lat": 37.4536,
+        "lng": 126.5982,
+        "arrivalTime": "",
+        "departureTime": "",
+        "memo": "",
+        "completed": false
       },
       {
-        "id": "pt-2-1780381213154",
-        "location": "D구역(북성포구 및 만석부두)",
-        "code": "D",
-        "detail": "북성포구 및 만석부두",
-        "lat": 37.481,
-        "lng": 126.608,
-        "arrivalTime": "15:20",
-        "departureTime": "15:20",
-        "memo": "불법주차",
-        "completed": true
+        "id": "pt-2-1782200558703",
+        "location": "F구역(석탄부두 및 남항부두)",
+        "code": "F",
+        "detail": "석탄부두 및 남항부두",
+        "lat": 37.442,
+        "lng": 126.602,
+        "arrivalTime": "",
+        "departureTime": "",
+        "memo": "",
+        "completed": false
       },
       {
-        "id": "pt-3-1780381213154",
-        "location": "E구역(화수부두 및 인천내항)",
-        "code": "E",
-        "detail": "화수부두 및 인천내항",
-        "lat": 37.487,
-        "lng": 126.621,
-        "arrivalTime": "15:20",
-        "departureTime": "15:20",
-        "memo": "이상 없음",
-        "completed": true
+        "id": "pt-3-1782200558703",
+        "location": "G구역(국제여객터미널 및 송도)",
+        "code": "G",
+        "detail": "국제여객터미널 및 송도",
+        "lat": 37.426,
+        "lng": 126.599,
+        "arrivalTime": "",
+        "departureTime": "",
+        "memo": "",
+        "completed": false
       }
     ],
     "summary": {
@@ -731,7 +288,98 @@
       "patrolMethod": "도보 및 차량",
       "patrolCount": "4곳"
     },
-    "createdAt": "2026-06-02T06:20:13.150Z",
-    "updatedAt": "2026-06-02T06:20:41.515Z"
+    "createdAt": "2026-06-23T07:42:38.700Z",
+    "updatedAt": "2026-06-23T07:43:27.526Z"
+  },
+  {
+    "id": "aefa2625-0140-43b3-8565-57a502a75cdb",
+    "date": "2026-06-24",
+    "members": [
+      "경장 이지훈",
+      "순경 최수아"
+    ],
+    "course": "해상2코스",
+    "coursePoints": [
+      {
+        "name": "A구역(인항파출소 및 전용부두)",
+        "lat": 37.4579,
+        "lng": 126.5986
+      },
+      {
+        "name": "B구역(연안부두 및 터미널)",
+        "lat": 37.4536,
+        "lng": 126.5982
+      },
+      {
+        "name": "F구역(석탄부두 및 남항부두)",
+        "lat": 37.442,
+        "lng": 126.602
+      },
+      {
+        "name": "G구역(국제여객터미널 및 송도)",
+        "lat": 37.426,
+        "lng": 126.599
+      }
+    ],
+    "organization": "해양경찰청 중부지방해양경찰청 인천해양경찰서 인항파출소",
+    "status": "completed",
+    "points": [
+      {
+        "id": "pt-0-1782259995805",
+        "location": "A구역(인항파출소 및 전용부두)",
+        "code": "A",
+        "detail": "인항파출소 및 전용부두",
+        "lat": 37.4579,
+        "lng": 126.5986,
+        "arrivalTime": "09:13",
+        "departureTime": "09:14",
+        "memo": "금지구역 불법 낚시 단속 활동",
+        "completed": true
+      },
+      {
+        "id": "pt-1-1782259995805",
+        "location": "B구역(연안부두 및 터미널)",
+        "code": "B",
+        "detail": "연안부두 및 터미널",
+        "lat": 37.4536,
+        "lng": 126.5982,
+        "arrivalTime": "09:14",
+        "departureTime": "09:14",
+        "memo": "낚시객 안전계도 실시",
+        "completed": true
+      },
+      {
+        "id": "pt-2-1782259995805",
+        "location": "F구역(석탄부두 및 남항부두)",
+        "code": "F",
+        "detail": "석탄부두 및 남항부두",
+        "lat": 37.442,
+        "lng": 126.602,
+        "arrivalTime": "09:14",
+        "departureTime": "09:14",
+        "memo": "이상 없음",
+        "completed": true
+      },
+      {
+        "id": "pt-3-1782259995805",
+        "location": "G구역(국제여객터미널 및 송도)",
+        "code": "G",
+        "detail": "국제여객터미널 및 송도",
+        "lat": 37.426,
+        "lng": 126.599,
+        "arrivalTime": "09:14",
+        "departureTime": "09:14",
+        "memo": "방파제 테트라포드 균열 발견",
+        "completed": true
+      }
+    ],
+    "summary": {
+      "totalDistance": 4,
+      "totalTime": 1,
+      "patrolMethod": "도보 및 차량",
+      "patrolCount": "4곳"
+    },
+    "createdAt": "2026-06-24T00:13:15.799Z",
+    "updatedAt": "2026-06-24T00:14:58.371Z"
   }
 ]

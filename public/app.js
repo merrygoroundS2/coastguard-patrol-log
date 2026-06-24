@@ -12,7 +12,7 @@ const State = {
     selectedDate: { year: initDate.getFullYear(), month: initDate.getMonth(), day: initDate.getDate() }, // Defaults to today
     selectedYear: initDate.getFullYear(),
     selectedMonth: initDate.getMonth(),
-    selectedMembers: [1, 2], // Default select 김민준(1), 박서연(2) like Image 2
+    selectedMembers: [], // 기본 선택 없음 — 사용자가 직접 선택
     selectedPatrolType: '해안', // Default patrol type
     selectedCourse: '',
     selectedZones: [], // Selected zone codes, e.g. ['A', 'B', 'C']
@@ -28,7 +28,12 @@ const State = {
     elapsedSeconds: 8, // Start at 8 seconds for mockup high-fidelity
     timerInterval: null,
     showAllHistory: false, // For toggle show-all history list
-    allPatrolsCached: []   // Saved patrols database cache
+    allPatrolsCached: [],   // Saved patrols database cache
+
+    // GPS Patrol Screen states
+    patrolWalkedPath: [],
+    patrolSimulated: false,
+    userLocationMarker: null
 };
 
 // ─── Demo Data ───
@@ -240,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
         console.error('Error binding global events:', e);
     }
-    
+
     try {
         initTimeEditPopup();
     } catch (e) {
@@ -252,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
         console.error('Error enabling drag scroll:', e);
     }
-    
+
     // Start at splash
     try {
         navigateTo('Splash');
@@ -290,6 +295,14 @@ function bindGlobalEvents() {
     // Dashboard -> Schedule Setup
     safeBind('#btnDashboardStartPatrol', 'click', () => {
         navigateTo('Schedule');
+    });
+
+    // Bottom Sheet Handle Toggle (클릭 시 숨기기/보이기)
+    safeBind('#bottomSheetHandle', 'click', () => {
+        const sheet = $('#memoBottomSheet');
+        if (sheet) {
+            sheet.classList.toggle('collapsed');
+        }
     });
 
     // Setup Tabs switching
@@ -336,6 +349,12 @@ function bindGlobalEvents() {
     // Setup: Final Patrol Start Button
     safeBind('#btnStartPatrolReal', 'click', handleScheduleSubmit);
 
+    // Active Patrol: Add Zone popup bindings
+    safeBind('#btnPatrolAddZone', 'click', openZoneAddPopup);
+    safeBind('#btnZoneAddCancel', 'click', closeZoneAddPopup);
+    safeBind('#btnZoneAddClose', 'click', closeZoneAddPopup);
+    safeBind('#btnZoneAddSubmit', 'click', submitZoneAdd);
+
     // Mini-Calendar month navigation
     safeBind('#btnPrevMonth', 'click', () => {
         State.selectedMonth--;
@@ -347,7 +366,7 @@ function bindGlobalEvents() {
         if (titleEl) titleEl.textContent = `${State.selectedMonth + 1}월`;
         renderMiniCalendar();
     });
-    
+
     safeBind('#btnNextMonth', 'click', () => {
         State.selectedMonth++;
         if (State.selectedMonth > 11) {
@@ -399,6 +418,11 @@ function handleLogin(e) {
         return;
     }
 
+    if (email !== 'orca' || password !== '1234') {
+        showToast('아이디 또는 비밀번호가 올바르지 않습니다.', 'error');
+        return;
+    }
+
     showToast('로그인 성공!', 'success');
     setTimeout(() => navigateTo('Dashboard'), 500);
 }
@@ -419,12 +443,74 @@ async function renderDashboard() {
         const data = await resp.json();
         if (data.success) {
             renderRecentHistory(data.patrols);
+            updateDashboardStats(data.patrols);
         }
     } catch (err) {
         console.error('순찰 내역 조회 실패:', err);
         // Fallback mockup
         renderRecentHistory([]);
+        updateDashboardStats([]);
     }
+
+    // AI 대시보드 렌더링
+    renderAIDashboard();
+}
+
+// 대시보드 통계 동적 업데이트 (실제 순찰 데이터 기반)
+function updateDashboardStats(patrols) {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-based
+
+    // 이번 달 순찰 횟수
+    let monthlyCount = 0;
+    // 총 순찰 시간 (분 단위 합산 후 시간 변환)
+    let totalMinutes = 0;
+    // 완료 일지 개수
+    let completedCount = 0;
+
+    patrols.forEach(p => {
+        // 날짜 파싱 (YYYY-MM-DD, YYYY.MM.DD 등 지원)
+        let pYear, pMonth;
+        if (p.date) {
+            const delimiters = ['-', '.', '/'];
+            for (let delim of delimiters) {
+                if (p.date.includes(delim)) {
+                    const parts = p.date.split(delim).map(Number);
+                    pYear = parts[0];
+                    pMonth = parts[1] - 1; // 0-based
+                    break;
+                }
+            }
+        }
+
+        // 이번 달 순찰 횟수 카운트
+        if (pYear === currentYear && pMonth === currentMonth) {
+            monthlyCount++;
+        }
+
+        // 총 순찰 시간 합산
+        if (p.summary && p.summary.totalTime) {
+            totalMinutes += p.summary.totalTime;
+        }
+
+        // 완료 일지 카운트
+        if (p.status === 'completed') {
+            completedCount++;
+        }
+    });
+
+    // DOM 업데이트
+    const elMonthly = $('#dashboardStatMonthlyCount');
+    const elHours = $('#dashboardStatTotalHours');
+    const elCompleted = $('#dashboardStatCompletedReports');
+
+    if (elMonthly) elMonthly.textContent = monthlyCount;
+    if (elHours) {
+        const totalHours = totalMinutes / 60;
+        elHours.textContent = totalHours % 1 === 0 ? totalHours.toFixed(0) : totalHours.toFixed(1);
+    }
+    if (elCompleted) elCompleted.textContent = completedCount;
 }
 
 function renderRecentHistory(patrols) {
@@ -453,11 +539,11 @@ function renderRecentHistory(patrols) {
     displayPatrols.forEach(p => {
         const card = document.createElement('div');
         card.className = 'history-card';
-        
+
         const isCompleted = p.status === 'completed';
         const badgeClass = isCompleted ? 'completed' : 'draft';
         const badgeLabel = isCompleted ? '완료' : '임시저장';
-        
+
         const hours = Math.floor(p.summary.totalTime / 60);
         const mins = p.summary.totalTime % 60;
         const timeLabel = hours > 0 ? `${hours}시간 ${mins}분` : `${mins}분`;
@@ -513,7 +599,7 @@ function renderRecentHistory(patrols) {
                     }
                 }
             });
-            
+
             // Hover styling dynamically or through CSS
             deleteBtn.addEventListener('mouseenter', () => { deleteBtn.style.color = '#e53935'; });
             deleteBtn.addEventListener('mouseleave', () => { deleteBtn.style.color = 'var(--navy-300)'; });
@@ -566,7 +652,7 @@ function switchSetupTab(tabName) {
 
     // Content panels hide/show
     $$('.tab-content').forEach(p => p.classList.add('hidden'));
-    
+
     if (tabName === 'date') {
         $('#tabContentDate').classList.remove('hidden');
         renderMiniCalendar();
@@ -586,9 +672,9 @@ function switchSetupTab(tabName) {
 // Tab 2.5: Patrol Type Setup
 function renderPatrolTypeList() {
     try {
-        const type = State.selectedPatrolType || '해안';
+        const type = State.selectedPatrolType || '';
         $$('#patrolTypeList .patrol-type-card').forEach(card => {
-            if (card.dataset.type === type) {
+            if (type && card.dataset.type === type) {
                 card.classList.add('selected');
             } else {
                 card.classList.remove('selected');
@@ -601,7 +687,7 @@ function renderPatrolTypeList() {
 
 function selectPatrolType(type) {
     State.selectedPatrolType = type;
-    
+
     // Highlight selected card
     $$('#patrolTypeList .patrol-type-card').forEach(card => {
         if (card.dataset.type === type) {
@@ -625,9 +711,14 @@ function renderCourseChips() {
         if (!container) return;
         container.innerHTML = '';
 
-        const type = State.selectedPatrolType || '해안';
+        const type = State.selectedPatrolType || '';
         let coursesToShow = [];
-        
+
+        if (!type) {
+            container.innerHTML = '<p style="color: var(--navy-300); font-size: 13px; text-align: center; padding: 12px 0;">순찰 종류를 먼저 선택해 주세요.</p>';
+            return;
+        }
+
         if (type === '해상') {
             coursesToShow = ['해상1코스', '해상2코스', '순찰정 1코스', '순찰정 2코스', '순찰정 3코스', '순찰정 4코스', '순찰정 5코스'];
         } else {
@@ -640,12 +731,12 @@ function renderCourseChips() {
             btn.className = `course-chip-btn ${State.selectedCourse === course ? 'selected' : ''}`;
             btn.dataset.course = course;
             btn.textContent = course;
-            
+
             btn.addEventListener('click', (e) => {
                 const targetCourse = e.target.dataset.course;
                 selectCourseAndZones(targetCourse);
             });
-            
+
             container.appendChild(btn);
         });
     } catch (err) {
@@ -654,6 +745,20 @@ function renderCourseChips() {
 }
 
 function renderScheduleScreen() {
+    // 순찰 설정 진입 시 이전 설정 초기화
+    const now = new Date();
+    State.selectedDate = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+    State.selectedYear = now.getFullYear();
+    State.selectedMonth = now.getMonth();
+    State.selectedMembers = [];
+    State.selectedPatrolType = '';
+    State.selectedCourse = '';
+    State.selectedZones = [];
+    State.userLocationMarker = null;
+
+    // 순찰 종류 카드 선택 해제 (UI)
+    $$('#patrolTypeList .patrol-type-card').forEach(card => card.classList.remove('selected'));
+
     switchSetupTab('date'); // Default tab open
 }
 
@@ -686,9 +791,9 @@ function renderMiniCalendar() {
         const el = createDayElement(d, false, dayOfWeek);
 
         // Highlight today or selected date automatically
-        if (State.selectedDate && 
-            State.selectedDate.year === year && 
-            State.selectedDate.month === month && 
+        if (State.selectedDate &&
+            State.selectedDate.year === year &&
+            State.selectedDate.month === month &&
             State.selectedDate.day === d) {
             el.classList.add('selected');
         }
@@ -697,7 +802,7 @@ function renderMiniCalendar() {
             $$('.calendar-day').forEach(cell => cell.classList.remove('selected'));
             el.classList.add('selected');
             State.selectedDate = { year, month, day: d };
-            
+
             // Auto transition to "Dispatch Members" tab after a tiny feedback delay!
             setTimeout(() => {
                 switchSetupTab('members');
@@ -747,7 +852,7 @@ function renderPersonnelList() {
             const card = document.createElement('div');
             const isSelected = Array.isArray(State.selectedMembers) && State.selectedMembers.includes(m.id);
             card.className = `personnel-card ${isSelected ? 'selected' : ''}`;
-            
+
             card.innerHTML = `
                 <div class="personnel-left-info">
                     <div class="personnel-icon-box">
@@ -829,7 +934,7 @@ function renderZonesList() {
 // Automatic selection logic when clicking a course
 function selectCourseAndZones(courseName) {
     State.selectedCourse = courseName;
-    
+
     // Highlight course chip
     $$('#courseChips .course-chip-btn').forEach(btn => {
         if (btn.dataset.course === courseName) btn.classList.add('selected');
@@ -851,6 +956,11 @@ function handleScheduleSubmit(e) {
 
     if (!Array.isArray(State.selectedMembers) || State.selectedMembers.length === 0) {
         showToast('출동 인원을 선택해주세요.', 'error');
+        return;
+    }
+
+    if (!State.selectedPatrolType) {
+        showToast('순찰 종류(해안/해상)를 선택해주세요.', 'error');
         return;
     }
 
@@ -906,7 +1016,7 @@ async function createPatrol() {
                     lng: mz.lng,
                     arrivalTime: idx === 0 ? formatTimeHM(new Date()) : '', // Auto arrive at first zone
                     departureTime: '',
-                    memo: idx === 0 ? '해안순찰 전 안전교육 실시' : '', // Mock initial memo for first zone
+                    memo: idx === 0 ? '내용을 입력해주세요' : '', // Mock initial memo for first zone
                     completed: false
                 });
             });
@@ -915,7 +1025,7 @@ async function createPatrol() {
             const activeOfficersEl = $('#patrolActiveOfficers');
             if (activeOfficersEl) activeOfficersEl.textContent = members.join(' · ');
             const label = `${month + 1}월 ${day}일 순찰일지`;
-            
+
             const opt1 = $('#patrolLogOption');
             if (opt1) opt1.textContent = label;
             const opt2 = $('#patrolEndLogOption');
@@ -983,7 +1093,7 @@ function updatePatrolMapMarkers() {
     State.patrolPoints.forEach((pt, idx) => {
         if (pt.lat && pt.lng) {
             let markerColor = '#cbd5e1'; // Upcoming (Gray)
-            
+
             if (idx === State.currentZoneIdx) {
                 markerColor = '#ef4444'; // Active/Current (Red)
             } else if (pt.completed || idx < State.currentZoneIdx) {
@@ -1023,6 +1133,33 @@ function updatePatrolMapMarkers() {
         const bounds = L.latLngBounds(coords);
         State.patrolMap.fitBounds(bounds.pad(0.3));
     }
+
+    // Draw walked path
+    if (State.patrolWalkedPath && State.patrolWalkedPath.length >= 2) {
+        L.polyline(State.patrolWalkedPath, {
+            color: '#2563eb', // Walked path polyline
+            weight: 5,
+            opacity: 0.85
+        }).addTo(State.patrolMap);
+    }
+
+    // Draw user position marker (Defaults to Korea Coast Guard Headquarters)
+    const userLat = State.currentLat || 37.394248;
+    const userLng = State.currentLng || 126.639352;
+    if (State.userLocationMarker) {
+        State.userLocationMarker.setLatLng([userLat, userLng]);
+        if (!State.patrolMap.hasLayer(State.userLocationMarker)) {
+            State.userLocationMarker.addTo(State.patrolMap);
+        }
+    } else {
+        State.userLocationMarker = L.circleMarker([userLat, userLng], {
+            radius: 9,
+            fillColor: '#2563eb',
+            color: '#ffffff',
+            weight: 2,
+            fillOpacity: 1
+        }).addTo(State.patrolMap).bindPopup('<b>현재 나의 위치</b>');
+    }
 }
 
 function startGPSTracking() {
@@ -1032,13 +1169,20 @@ function startGPSTracking() {
         navigator.geolocation.clearWatch(State.watchId);
     }
 
+    State.patrolWalkedPath = [];
+    State.patrolSimulated = false;
+
     State.watchId = navigator.geolocation.watchPosition(
         (pos) => {
-            State.currentLat = pos.coords.latitude;
-            State.currentLng = pos.coords.longitude;
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            State.currentLat = lat;
+            State.currentLng = lng;
+
+            handlePatrolGPSUpdate(lat, lng);
         },
         (err) => console.warn('GPS 오류:', err),
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 }
 
@@ -1046,10 +1190,15 @@ function startGPSTracking() {
 // PATROL PROGRESS UI & ELAPSED TIMER
 // ═══════════════════════════════════════════
 function renderPatrolProgressUI() {
-    const list = $('#patrolListItems');
-    list.innerHTML = '';
+    const completedList = $('#patrolListCompletedItems');
+    const upcomingList = $('#patrolListUpcomingItems');
+    
+    if (completedList) completedList.innerHTML = '';
+    if (upcomingList) upcomingList.innerHTML = '';
 
     let completedCount = 0;
+    const total = State.patrolPoints.length;
+
     State.patrolPoints.forEach((pt, idx) => {
         const item = document.createElement('div');
         const isActive = idx === State.currentZoneIdx;
@@ -1068,27 +1217,81 @@ function renderPatrolProgressUI() {
         }
 
         item.className = `patrol-zone-item-premium ${statusClass}`;
+        item.style.display = 'flex';
+        item.style.justifyContent = 'space-between';
+        item.style.alignItems = 'center';
 
         item.innerHTML = `
-            <div class="patrol-item-left">
+            <div class="patrol-item-left" style="display: flex; align-items: center; gap: 10px;">
                 <div class="patrol-item-badge">${pt.code || String.fromCharCode(65 + idx)}</div>
                 <div class="patrol-item-name">${escapeHtml(pt.location)}</div>
             </div>
-            <span class="patrol-item-status-tag">${statusTag}</span>
+            <div class="patrol-item-right-actions" style="display: flex; align-items: center; gap: 8px;">
+                <span class="patrol-item-status-tag">${statusTag}</span>
+                <button type="button" class="btn-zone-delete" data-idx="${idx}" title="구역 삭제" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; outline: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
         `;
-        list.appendChild(item);
+
+        // Bind delete action
+        const delBtn = item.querySelector('.btn-zone-delete');
+        if (delBtn) {
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleDeleteZone(idx);
+            });
+        }
+
+        // Distribute to corresponding group list
+        if (isCompleted) {
+            if (completedList) completedList.appendChild(item);
+        } else {
+            if (upcomingList) upcomingList.appendChild(item);
+        }
     });
 
     // Update Ratio & Progress Bar
-    const total = State.patrolPoints.length;
-    $('#patrolProgressRatio').textContent = `${completedCount}/${total} 구역`;
-    const progressPercent = (completedCount / total) * 100;
-    $('#patrolProgressBarFill').style.width = `${progressPercent}%`;
+    if ($('#patrolProgressRatio')) {
+        $('#patrolProgressRatio').textContent = `${completedCount}/${total} 구역`;
+    }
+    if ($('#patrolProgressBarFill') && total > 0) {
+        const progressPercent = (completedCount / total) * 100;
+        $('#patrolProgressBarFill').style.width = `${progressPercent}%`;
+    }
+
+    // 3. 예상 완료 시간 연산
+    const estEl = $('#patrolEstimatedCompletion');
+    if (estEl) {
+        if (completedCount === total) {
+            estEl.textContent = `순찰 완료`;
+        } else {
+            const now = new Date();
+            if (completedCount === 0) {
+                // 아직 완료된 구역이 없는 경우: 구역당 10분 소요로 가정
+                const estimatedLeftSeconds = total * 10 * 60;
+                now.setSeconds(now.getSeconds() + estimatedLeftSeconds);
+                estEl.textContent = `예상 완료 시간: 약 ${formatTimeHM(now)}`;
+            } else {
+                // 1구역 당 평균 소요 시간 (경과 시간 기준)
+                const avgSecondsPerZone = State.elapsedSeconds / completedCount;
+                const remainingZones = total - completedCount;
+                const estimatedLeftSeconds = avgSecondsPerZone * remainingZones;
+                now.setSeconds(now.getSeconds() + estimatedLeftSeconds);
+                estEl.textContent = `예상 완료 시간: 약 ${formatTimeHM(now)}`;
+            }
+        }
+    }
 
     // Load active zone memo into Bottom Sheet input
     const activeZone = State.patrolPoints[State.currentZoneIdx];
     if (activeZone) {
-        $('#sheetMemoInput').value = activeZone.memo || '';
+        if ($('#sheetMemoInput')) {
+            $('#sheetMemoInput').value = activeZone.memo || '';
+        }
         // Set tag active based on value
         $$('#quickTags .quick-tag').forEach(btn => {
             if (activeZone.memo === btn.dataset.tag) btn.classList.add('active');
@@ -1098,10 +1301,116 @@ function renderPatrolProgressUI() {
 
     // Adapt sheet button label on final zone
     if (State.currentZoneIdx === total - 1) {
-        $('#btnSheetNextZone').textContent = '순찰 완료 및 종료';
+        if ($('#btnSheetNextZone')) $('#btnSheetNextZone').textContent = '순찰 완료 및 종료';
     } else {
-        $('#btnSheetNextZone').textContent = '다음 구역으로 이동';
+        if ($('#btnSheetNextZone')) $('#btnSheetNextZone').textContent = '다음 구역으로 이동';
     }
+}
+
+// 구역 삭제
+function handleDeleteZone(targetIdx) {
+    const targetZone = State.patrolPoints[targetIdx];
+    if (!targetZone) return;
+
+    if (State.patrolPoints.length <= 1) {
+        showToast('순찰 구역은 최소 1개 이상 존재해야 합니다.', 'error');
+        return;
+    }
+
+    if (!confirm(`'${targetZone.location}' 구역을 순찰 경로에서 삭제하시겠습니까?`)) {
+        return;
+    }
+
+    // 1. 현재 순찰 중인 활성 구역(State.currentZoneIdx)인 경우
+    if (targetIdx === State.currentZoneIdx) {
+        if (State.currentZoneIdx === State.patrolPoints.length - 1) {
+            // 마지막 구역이었으면 인덱스를 한 칸 앞으로 당김
+            State.currentZoneIdx--;
+        } else {
+            // 마지막이 아니면 인덱스는 그대로 두고 다음 구역이 활성화되도록 함
+            const nextZone = State.patrolPoints[State.currentZoneIdx + 1];
+            if (nextZone && !nextZone.arrivalTime) {
+                nextZone.arrivalTime = formatTimeHM(new Date());
+            }
+        }
+    } else if (targetIdx < State.currentZoneIdx) {
+        // 현재 인덱스보다 앞선 구역이 삭제되면 인덱스를 하나 줄임
+        State.currentZoneIdx--;
+    }
+
+    // 2. 구역 삭제
+    State.patrolPoints.splice(targetIdx, 1);
+
+    // 3. UI 및 데이터 저장
+    renderPatrolProgressUI();
+    updatePatrolMapMarkers();
+    savePatrolToServer();
+    showToast('구역이 삭제되었습니다.', 'success');
+}
+
+// 구역 추가 팝업 열기
+function openZoneAddPopup() {
+    const currentCodes = State.patrolPoints.map(pt => pt.code);
+    const select = $('#selectNewZone');
+    if (!select) return;
+
+    select.innerHTML = '';
+    const availableZones = DEMO_ZONES.filter(z => !currentCodes.includes(z.code));
+
+    if (availableZones.length === 0) {
+        showToast('더 이상 추가할 수 있는 구역이 없습니다.', 'info');
+        return;
+    }
+
+    availableZones.forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z.code;
+        opt.textContent = `${z.name} (${z.detail})`;
+        select.appendChild(opt);
+    });
+
+    const overlay = $('#zoneAddOverlay');
+    if (overlay) overlay.classList.add('active');
+}
+
+// 구역 추가 팝업 닫기
+function closeZoneAddPopup() {
+    const overlay = $('#zoneAddOverlay');
+    if (overlay) overlay.classList.remove('active');
+}
+
+// 구역 추가 완료 제출
+function submitZoneAdd() {
+    const select = $('#selectNewZone');
+    if (!select) return;
+    const code = select.value;
+    if (!code) {
+        showToast('구역을 선택해주세요.', 'error');
+        return;
+    }
+
+    const zone = DEMO_ZONES.find(z => z.code === code);
+    if (!zone) return;
+
+    const nextIdx = State.patrolPoints.length;
+    State.patrolPoints.push({
+        id: `pt-${nextIdx}-${Date.now()}`,
+        location: `${zone.name}(${zone.detail})`,
+        code: zone.code,
+        detail: zone.detail,
+        lat: zone.lat,
+        lng: zone.lng,
+        arrivalTime: '',
+        departureTime: '',
+        memo: '',
+        completed: false
+    });
+
+    closeZoneAddPopup();
+    renderPatrolProgressUI();
+    updatePatrolMapMarkers();
+    savePatrolToServer();
+    showToast(`'${zone.name}' 구역이 추가되었습니다.`, 'success');
 }
 
 // Elapsed timer
@@ -1127,7 +1436,7 @@ function setupPatrolBottomSheet() {
         // Remove old listeners by replacing node or simple replacement (avoid adding multiple handlers)
         const newBtn = btn.cloneNode(true);
         btn.parentNode.replaceChild(newBtn, btn);
-        
+
         newBtn.addEventListener('click', (e) => {
             const tag = e.target.dataset.tag;
             $('#sheetMemoInput').value = tag;
@@ -1139,6 +1448,9 @@ function setupPatrolBottomSheet() {
             // Save to active zone
             const activeZone = State.patrolPoints[State.currentZoneIdx];
             if (activeZone) activeZone.memo = tag;
+
+            // AI 분류 업데이트
+            updateAIClassifyFromTag(tag);
         });
     });
 
@@ -1156,6 +1468,9 @@ function setupPatrolBottomSheet() {
     const newNextBtn = nextBtn.cloneNode(true);
     nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
     newNextBtn.addEventListener('click', handleNextZoneTransition);
+
+    // AI 메모 실시간 분류 설정
+    setupAIMemoClassification();
 }
 
 async function handleNextZoneTransition() {
@@ -1212,11 +1527,12 @@ async function endPatrol() {
         }
 
         State.currentPatrol.points = State.patrolPoints;
+        const visitedPoints = State.patrolPoints.filter(pt => pt.arrivalTime);
         State.currentPatrol.summary = {
-            totalDistance: State.patrolPoints.length,
+            totalDistance: visitedPoints.length,
             totalTime: Math.round(totalMinutes) || Math.floor(State.elapsedSeconds / 60) || 2, // fallback to active timer duration or 2 min
             patrolMethod: '도보 및 차량',
-            patrolCount: `${State.patrolPoints.length}곳`
+            patrolCount: `${visitedPoints.length}곳`
         };
         State.currentPatrol.status = 'completed';
 
@@ -1224,6 +1540,7 @@ async function endPatrol() {
     }
 
     showToast('순찰이 모두 완료되어 종료되었습니다.', 'success');
+    State.userLocationMarker = null;
     navigateTo('PatrolEnd');
 }
 
@@ -1288,6 +1605,9 @@ async function renderPatrolEnd() {
     renderPatrolEndSummary();
     renderPatrolEndTimeline();
 
+    // 4.5. AI 섹션 렌더링
+    renderAIPatrolEndSections();
+
     // 5. Init map (100ms 뒤에 안전하게 렌더링)
     setTimeout(() => {
         if (State.patrolEndMap) {
@@ -1345,7 +1665,7 @@ function renderPatrolLogDropdown() {
         selectEl.innerHTML = '';
 
         const patrols = State.allPatrolsCached || [];
-        
+
         if (patrols.length === 0) {
             const opt = document.createElement('option');
             opt.textContent = '순찰 기록 없음';
@@ -1359,10 +1679,10 @@ function renderPatrolLogDropdown() {
         sortedPatrols.forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.id;
-            
+
             const dateLabel = parseDateLabel(p.date);
             opt.textContent = `${dateLabel} 순찰일지`;
-            
+
             if (State.currentPatrol && p.id === State.currentPatrol.id) {
                 opt.selected = true;
             }
@@ -1375,7 +1695,7 @@ function renderPatrolLogDropdown() {
             if (targetPatrol) {
                 State.currentPatrol = targetPatrol;
                 State.patrolPoints = targetPatrol.points || [];
-                
+
                 if (targetPatrol.date) {
                     const delimiters = ['-', '.', '/'];
                     let parts = [];
@@ -1393,7 +1713,7 @@ function renderPatrolLogDropdown() {
                         };
                     }
                 }
-                
+
                 renderPatrolEnd();
             }
         };
@@ -1455,7 +1775,7 @@ function renderPatrolEndSummary() {
                     } else if (isSummaryField) {
                         summary[key] = finalVal;
                     }
-                    
+
                     savePatrolToServer();
                     renderPatrolEnd();
                     showToast('순찰 정보가 수정되었습니다.', 'success');
@@ -1590,8 +1910,8 @@ function renderReport() {
     }
 
     // Places
-    const places = State.patrolPoints.map(pt => pt.location);
-    $('#reportPlaces').textContent = places.join('→');
+    const visitedPlaces = State.patrolPoints.filter(pt => pt.arrivalTime).map(pt => pt.location);
+    $('#reportPlaces').textContent = visitedPlaces.length > 0 ? visitedPlaces.join('→') : '방문 구역 없음';
 
     // Bind edit places (course) click
     const placesField = $('#reportPlaces').parentElement.parentElement;
@@ -2010,7 +2330,7 @@ function enableDragScroll(selector) {
         const walk = (x - startX) * 1.5; // 스크롤 감도 배율
         slider.scrollLeft = scrollLeft - walk;
     });
-    
+
     // 기본 cursor 모양 세팅
     slider.style.cursor = 'pointer';
 }
@@ -2063,27 +2383,27 @@ function initTimeEditPopup() {
     // Populate minutes select options (00 to 59)
     const startMin = $('#selectStartMin');
     const endMin = $('#selectEndMin');
-    
+
     startMin.innerHTML = '';
     endMin.innerHTML = '';
-    
+
     for (let i = 0; i < 60; i++) {
         const val = String(i).padStart(2, '0');
         const optStart = document.createElement('option');
         optStart.value = val;
         optStart.textContent = `${val}분`;
         startMin.appendChild(optStart);
-        
+
         const optEnd = document.createElement('option');
         optEnd.value = val;
         optEnd.textContent = `${val}분`;
         endMin.appendChild(optEnd);
     }
-    
+
     // Bind overlay click events
     $('#btnTimeEditCancel').addEventListener('click', closeTimeEditPopup);
     $('#btnTimeEditSubmit').addEventListener('click', submitTimeEdit);
-    
+
     // Also close on background overlay click
     $('#timeEditOverlay').addEventListener('click', (e) => {
         if (e.target === $('#timeEditOverlay')) closeTimeEditPopup();
@@ -2093,7 +2413,7 @@ function initTimeEditPopup() {
 function openTimeEditPopup(idx) {
     currentTimeEditIdx = idx;
     const pt = State.patrolPoints[idx];
-    
+
     // Set default select values based on pt.arrivalTime
     if (pt.arrivalTime) {
         const parsed = parseTimeHMStr(pt.arrivalTime);
@@ -2101,7 +2421,7 @@ function openTimeEditPopup(idx) {
         $('#selectStartMin').value = parsed.min;
         $('#selectStartAmpm').value = parsed.ampm;
     }
-    
+
     // Set default select values based on pt.departureTime
     if (pt.departureTime) {
         const parsed = parseTimeHMStr(pt.departureTime);
@@ -2115,7 +2435,7 @@ function openTimeEditPopup(idx) {
         $('#selectEndMin').value = parsed.min;
         $('#selectEndAmpm').value = parsed.ampm;
     }
-    
+
     $('#timeEditOverlay').classList.add('active');
 }
 
@@ -2126,22 +2446,22 @@ function closeTimeEditPopup() {
 
 function submitTimeEdit() {
     if (currentTimeEditIdx === null) return;
-    
+
     const startH = $('#selectStartHour').value;
     const startM = $('#selectStartMin').value;
     const startA = $('#selectStartAmpm').value;
-    
+
     const endH = $('#selectEndHour').value;
     const endM = $('#selectEndMin').value;
     const endA = $('#selectEndAmpm').value;
-    
+
     // Format to HH:MM format
     const startTime24 = convertTo24h(startH, startM, startA);
     const endTime24 = convertTo24h(endH, endM, endA);
-    
+
     State.patrolPoints[currentTimeEditIdx].arrivalTime = startTime24;
     State.patrolPoints[currentTimeEditIdx].departureTime = endTime24;
-    
+
     // Recalculate summary totalTime based on new point times
     if (State.currentPatrol) {
         const times = State.patrolPoints.filter(pt => pt.arrivalTime).map(pt => pt.arrivalTime);
@@ -2156,9 +2476,9 @@ function submitTimeEdit() {
         }
         State.currentPatrol.points = State.patrolPoints;
     }
-    
+
     closeTimeEditPopup();
-    
+
     // Save to server
     savePatrolToServer();
 
@@ -2173,7 +2493,7 @@ function submitTimeEdit() {
         }
         updatePatrolMapMarkers();
     }
-    
+
     showToast('시간이 수정되었습니다.', 'success');
 }
 
@@ -2184,14 +2504,14 @@ function parseTimeHMStr(timeStr) {
     let h = parseInt(hStr);
     const min = mStr;
     let ampm = 'AM';
-    
+
     if (h >= 12) {
         ampm = 'PM';
         if (h > 12) h -= 12;
     } else if (h === 0) {
         h = 12;
     }
-    
+
     return {
         hour: String(h).padStart(2, '0'),
         min: min,
@@ -2213,31 +2533,489 @@ async function handleEditPatrolDate() {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (dateRegex.test(newVal.trim())) {
             State.currentPatrol.date = newVal.trim();
-            
+
             // Save to server
             await savePatrolToServer();
-            
+
             // Update UI
             const parsed = new Date(State.currentPatrol.date);
             const m = parsed.getMonth() + 1;
             const d = parsed.getDate();
             const label = `${m}월 ${d}일 순찰일지`;
-            
+
             const optEnd = $('#patrolEndLogOption');
             if (optEnd) optEnd.textContent = label;
-            
+
             const optProgress = $('#patrolLogOption');
             if (optProgress) optProgress.textContent = label;
-            
+
             if (State.currentScreen === 'PatrolEnd') {
                 renderPatrolEnd();
             } else if (State.currentScreen === 'Report') {
                 renderReport();
             }
-            
+
             showToast('순찰 날짜가 수정되었습니다.', 'success');
         } else {
             showToast('올바른 날짜 형식(YYYY-MM-DD)으로 입력하십시오.', 'error');
         }
     }
 }
+
+// ═══════════════════════════════════════════
+// AI ENGINE (CLIENT-SIDE)
+// ═══════════════════════════════════════════
+
+// 클라이언트 측 AI 분류기 (서버 호출 없이 즉시 분류)
+const AI_CATEGORIES_CLIENT = {
+    '안전계도': {
+        keywords: ['구명조끼', '미착용', '계도', '안전', '주취자', '음주', '위험행위', '위험', '낚시객', '수영', '입수', '안전교육', '안전장비', '안전수칙', '경고', '주의', '해수욕', '물놀이'],
+        icon: '🛡️', color: '#3182ce', cssClass: 'cat-safety'
+    },
+    '위험요소 발견': {
+        keywords: ['파손', '누수', '균열', '붕괴', '위험', '고장', '손상', '노후', '침수', '유출', '기름', '오염', '표류', '부유물', '표류물', '장애물'],
+        icon: '⚠️', color: '#e53e3e', cssClass: 'cat-danger'
+    },
+    '민원 대응': {
+        keywords: ['민원', '신고', '소음', '불법주차', '주차', '항의', '분쟁', '갈등', '소란', '진정', '요청', '요구', '불만', '피해', '악취'],
+        icon: '📋', color: '#d69e2e', cssClass: 'cat-complaint'
+    },
+    '시설 점검': {
+        keywords: ['점검', '시설', '방파제', '부두', '잔교', '난간', '조명', 'cctv', '소화기', '구명환', '계류', '정박', '보수', '정비', '수리'],
+        icon: '🔧', color: '#38a169', cssClass: 'cat-facility'
+    },
+    '단속 활동': {
+        keywords: ['단속', '불법', '무허가', '어업', '밀수', '밀입국', '불법조업', '무면허', '과적', '위반', '적발', '검거', '체포', '수색', '조사'],
+        icon: '🚨', color: '#805ad5', cssClass: 'cat-enforcement'
+    }
+};
+
+function aiClassifyLocal(memoText) {
+    const trimmed = (memoText || '').trim();
+    if (!trimmed || trimmed === '' || trimmed === '이상 없음' || trimmed === '이상없음' || trimmed === '내용을 입력해주세요') {
+        return { category: '이상 없음', icon: '✅', color: '#a0aec0', cssClass: 'cat-normal', confidence: 1.0 };
+    }
+
+    const text = memoText.toLowerCase();
+    let bestCategory = null;
+    let bestScore = 0;
+
+    for (const [category, config] of Object.entries(AI_CATEGORIES_CLIENT)) {
+        let score = 0;
+        for (const kw of config.keywords) {
+            if (text.includes(kw)) score++;
+        }
+        if (score > bestScore) {
+            bestScore = score;
+            bestCategory = category;
+        }
+    }
+
+    if (bestCategory && bestScore > 0) {
+        const config = AI_CATEGORIES_CLIENT[bestCategory];
+        return { category: bestCategory, icon: config.icon, color: config.color, cssClass: config.cssClass, confidence: Math.min(0.95, 0.5 + bestScore * 0.15) };
+    }
+
+    return { category: '안전계도', icon: '🛡️', color: '#3182ce', cssClass: 'cat-safety', confidence: 0.6 };
+}
+
+function getCategoryBadgeClass(category) {
+    const map = {
+        '안전계도': 'cat-safety',
+        '위험요소 발견': 'cat-danger',
+        '민원 대응': 'cat-complaint',
+        '시설 점검': 'cat-facility',
+        '단속 활동': 'cat-enforcement',
+        '이상 없음': 'cat-normal'
+    };
+    return map[category] || 'cat-normal';
+}
+
+// ═══════════════════════════════════════════
+// AI DASHBOARD RENDERING
+// ═══════════════════════════════════════════
+
+async function renderAIDashboard() {
+    try {
+        await renderAICategorySummary();
+        await renderAIPatternInsights();
+    } catch (err) {
+        console.error('AI 대시보드 렌더링 오류:', err);
+    }
+}
+
+async function renderAICategorySummary() {
+    const grid = $('#aiCategoryGrid');
+    if (!grid) return;
+
+    // 서버에서 패턴 분석 데이터 가져오기
+    try {
+        const resp = await fetch('/api/ai/pattern-analysis');
+        const data = await resp.json();
+
+        if (!data.success || !data.analysis) {
+            grid.innerHTML = '<div class="ai-empty-state">순찰 데이터가 없습니다.</div>';
+            return;
+        }
+
+        const breakdown = data.analysis.stats.categoryBreakdown || {};
+        const categories = [
+            { name: '안전계도', icon: '🛡️', color: '#3182ce' },
+            { name: '위험요소 발견', icon: '⚠️', color: '#e53e3e' },
+            { name: '민원 대응', icon: '📋', color: '#d69e2e' },
+            { name: '시설 점검', icon: '🔧', color: '#38a169' },
+            { name: '단속 활동', icon: '🚨', color: '#805ad5' }
+        ];
+
+        // 총 건수 표시 카드도 추가
+        const totalCount = Object.values(breakdown).reduce((s, v) => s + v, 0);
+
+        let html = `
+            <div class="ai-category-card" style="border-color: rgba(102,126,234,0.2);">
+                <span class="ai-category-icon">📊</span>
+                <span class="ai-category-name">전체 특이사항</span>
+                <span class="ai-category-count" style="color: #667eea;">${totalCount}</span>
+                <span class="ai-category-unit">건</span>
+            </div>
+        `;
+
+        categories.forEach(cat => {
+            const count = breakdown[cat.name] || 0;
+            html += `
+                <div class="ai-category-card" style="border-color: ${cat.color}20;">
+                    <span class="ai-category-icon">${cat.icon}</span>
+                    <span class="ai-category-name">${cat.name}</span>
+                    <span class="ai-category-count" style="color: ${cat.color};">${count}</span>
+                    <span class="ai-category-unit">건</span>
+                </div>
+            `;
+        });
+
+        grid.innerHTML = html;
+    } catch (err) {
+        console.error('AI 카테고리 요약 오류:', err);
+        grid.innerHTML = '<div class="ai-empty-state">AI 분석 데이터를 불러올 수 없습니다.</div>';
+    }
+}
+
+async function renderAIPatternInsights() {
+    const list = $('#aiInsightsList');
+    if (!list) return;
+
+    try {
+        const resp = await fetch('/api/ai/pattern-analysis');
+        const data = await resp.json();
+
+        if (!data.success || !data.analysis || data.analysis.insights.length === 0) {
+            list.innerHTML = '<div class="ai-empty-state">분석 가능한 패턴이 아직 없습니다.</div>';
+            return;
+        }
+
+        let html = '';
+        data.analysis.insights.forEach(insight => {
+            html += `
+                <div class="ai-insight-card ${insight.type}">
+                    <span class="ai-insight-icon">${insight.icon}</span>
+                    <div class="ai-insight-body">
+                        <div class="ai-insight-title">${escapeHtml(insight.title)}</div>
+                        <div class="ai-insight-message">${escapeHtml(insight.message)}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        list.innerHTML = html;
+    } catch (err) {
+        console.error('AI 인사이트 렌더링 오류:', err);
+        list.innerHTML = '<div class="ai-empty-state">AI 인사이트를 불러올 수 없습니다.</div>';
+    }
+}
+
+// ═══════════════════════════════════════════
+// AI PATROL END RENDERING
+// ═══════════════════════════════════════════
+
+async function renderAIPatrolEndSections() {
+    try {
+        await renderAIQualityCheck();
+        await renderAIGeneratedReport();
+    } catch (err) {
+        console.error('AI 순찰 종료 렌더링 오류:', err);
+    }
+}
+
+async function renderAIQualityCheck() {
+    const container = $('#aiQualitySection');
+    if (!container) return;
+
+    const patrol = State.currentPatrol;
+    if (!patrol) {
+        container.innerHTML = '';
+        return;
+    }
+
+    try {
+        const resp = await fetch('/api/ai/quality-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patrol })
+        });
+        const data = await resp.json();
+
+        if (!data.success) {
+            container.innerHTML = '';
+            return;
+        }
+
+        const checkData = data.alerts || {};
+        const score = checkData.score || 0;
+        const checks = checkData.checks || [];
+        const suggestions = checkData.suggestions || [];
+        const styleCheck = checkData.styleCheck || { status: 'success', message: '표준 문체 적용 완료' };
+
+        // Calculate stroke dashoffset for score gauge (radius 28, stroke-dasharray 176)
+        const circumference = 176;
+        const offset = circumference - (circumference * score) / 100;
+
+        const scoreDesc = score >= 90 ? '매우 우수함 (즉시 제출 가능)' : score >= 75 ? '양호 (보완 후 제출 권장)' : '보완 필요 (필수 항목 누락)';
+        const scoreColor = score >= 90 ? '#10b981' : score >= 75 ? '#d97706' : '#ef4444';
+
+        // Map status to icon and class
+        const checkIcons = {
+            'success': '✅',
+            'warning': '⚠️',
+            'error': '❌',
+            'info': 'ℹ️'
+        };
+
+        let checklistHtml = '';
+        checks.forEach(c => {
+            checklistHtml += `
+                <div class="ai-checklist-item ${c.status}" title="${escapeHtml(c.message)}">
+                    <span class="ai-checklist-icon">${checkIcons[c.status] || 'ℹ️'}</span>
+                    <span class="ai-checklist-text">${escapeHtml(c.name)}</span>
+                </div>
+            `;
+        });
+
+        let suggestionsHtml = '';
+        if (suggestions.length > 0) {
+            suggestionsHtml = `
+                <div class="ai-quality-suggestions-box">
+                    <div class="suggestions-title">
+                        <span>💡</span> AI 품질 개선 제안
+                    </div>
+                    <ul class="suggestions-list">
+                        ${suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        } else {
+            suggestionsHtml = `
+                <div class="ai-quality-suggestions-box" style="border-color: #a7f3d0; background: #f0fdf4;">
+                    <div class="suggestions-title" style="color: #065f46;">
+                        <span>🎉</span> AI 품질 점검 완료
+                    </div>
+                    <p style="font-size: 12px; color: #047857; margin: 0;">모든 필수 항목이 완벽하게 작성되었으며 표준 문체를 준수하고 있습니다.</p>
+                </div>
+            `;
+        }
+
+        const styleBadgeClass = styleCheck.status === 'success' ? 'style-check-success' : 'style-check-warning';
+        const styleBadgeIcon = styleCheck.status === 'success' ? '✓' : '⚠';
+
+        container.innerHTML = `
+            <div class="ai-quality-card-premium">
+                <div class="ai-quality-card-header">
+                    <div class="ai-quality-header-title">
+                        <span class="ai-quality-header-icon">🛡️</span>
+                        <span>AI 보고서 품질 검사</span>
+                    </div>
+                    <span class="${styleBadgeClass}">${styleBadgeIcon} ${escapeHtml(styleCheck.message)}</span>
+                </div>
+
+                <div class="ai-quality-score-row">
+                    <div class="quality-gauge-container">
+                        <svg class="gauge-svg" width="64" height="64">
+                            <circle class="gauge-circle-bg" stroke-width="4.5" fill="transparent" r="28" cx="32" cy="32"/>
+                            <circle class="gauge-circle-fill" stroke="${scoreColor}" stroke-width="4.5" fill="transparent" r="28" cx="32" cy="32" 
+                                    style="stroke-dashoffset: ${offset};"/>
+                        </svg>
+                        <div class="gauge-score-text">${score}점</div>
+                    </div>
+                    <div class="ai-quality-score-info">
+                        <div class="ai-quality-score-label">보고서 품질 점수</div>
+                        <div class="ai-quality-score-desc" style="color: ${scoreColor}; font-weight: 700;">${scoreDesc}</div>
+                    </div>
+                </div>
+
+                <div class="ai-quality-checklist">
+                    ${checklistHtml}
+                </div>
+
+                ${suggestionsHtml}
+            </div>
+        `;
+    } catch (err) {
+        console.error('AI 품질 점검 렌더링 오류:', err);
+        container.innerHTML = '<div class="ai-empty-state">품질 점검 데이터를 불러올 수 없습니다.</div>';
+    }
+}
+
+async function renderAIGeneratedReport() {
+    const contentEl = $('#aiReportContent');
+    const classEl = $('#aiClassifications');
+    if (!contentEl || !classEl) return;
+
+    const patrol = State.currentPatrol;
+    if (!patrol || !patrol.points || patrol.points.length === 0) {
+        contentEl.innerHTML = '<div class="ai-typing-placeholder">순찰 기록이 없어 일지를 생성할 수 없습니다.</div>';
+        classEl.innerHTML = '';
+        return;
+    }
+
+    // 로딩 상태
+    contentEl.innerHTML = '<div class="ai-typing-placeholder">AI가 순찰일지를 작성하고 있습니다...</div>';
+    classEl.innerHTML = '';
+
+    try {
+        const resp = await fetch('/api/ai/generate-report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patrol })
+        });
+        const data = await resp.json();
+
+        if (!data.success) {
+            contentEl.innerHTML = '<div class="ai-typing-placeholder">일지 생성에 실패하였습니다.</div>';
+            return;
+        }
+
+        // 타이핑 애니메이션으로 보고서 텍스트 표시
+        setTimeout(() => {
+            contentEl.innerHTML = `<div class="ai-report-text">${escapeHtml(data.report)}</div>`;
+        }, 500);
+
+        // 분류 뱃지 렌더링
+        if (data.classifications && data.classifications.length > 0) {
+            let badgesHtml = '';
+            data.classifications.forEach((cls, idx) => {
+                if (cls.classification.category === '이상 없음' && ((cls.memo || '').trim() === '해안순찰 전 안전교육 실시' || (cls.memo || '').trim() === '내용을 입력해주세요' || (cls.memo || '').trim() === '이상 없음' || (cls.memo || '').trim() === '이상없음' || (cls.memo || '').trim() === '')) return;
+                const badgeClass = getCategoryBadgeClass(cls.classification.category);
+                badgesHtml += `
+                    <span class="ai-class-badge ${badgeClass}" style="animation-delay: ${idx * 0.1}s;">
+                        <span class="ai-class-badge-icon">${cls.classification.icon}</span>
+                        ${escapeHtml(cls.classification.category)}
+                        ${cls.memo ? ` · ${escapeHtml(cls.memo.substring(0, 15))}` : ''}
+                    </span>
+                `;
+            });
+            classEl.innerHTML = badgesHtml;
+        }
+    } catch (err) {
+        console.error('AI 보고서 생성 오류:', err);
+        contentEl.innerHTML = '<div class="ai-typing-placeholder">AI 서버 연결에 실패하였습니다.</div>';
+    }
+}
+
+// ═══════════════════════════════════════════
+// AI MEMO REALTIME CLASSIFICATION
+// ═══════════════════════════════════════════
+
+let aiClassifyTimeout = null;
+
+function setupAIMemoClassification() {
+    const memoInput = $('#sheetMemoInput');
+    const badge = $('#aiClassifyBadge');
+    if (!memoInput || !badge) return;
+
+    // 입력 이벤트에 디바운스된 AI 분류 호출
+    memoInput.addEventListener('input', (e) => {
+        const text = e.target.value;
+
+        if (aiClassifyTimeout) clearTimeout(aiClassifyTimeout);
+
+        aiClassifyTimeout = setTimeout(() => {
+            if (!text || text.trim() === '') {
+                badge.textContent = '입력 대기 중';
+                badge.style.background = 'var(--gray-100)';
+                badge.style.color = 'var(--gray-500)';
+                badge.classList.remove('active');
+                return;
+            }
+
+            const result = aiClassifyLocal(text);
+            badge.textContent = `${result.icon} ${result.category}`;
+            badge.style.background = `${result.color}15`;
+            badge.style.color = result.color;
+            badge.classList.remove('active');
+            // Force reflow for re-animation
+            void badge.offsetWidth;
+            badge.classList.add('active');
+        }, 300);
+    });
+}
+
+// Quick tag 클릭 시에도 AI 분류 업데이트
+function updateAIClassifyFromTag(tagText) {
+    const badge = $('#aiClassifyBadge');
+    if (!badge) return;
+
+    const result = aiClassifyLocal(tagText);
+    badge.textContent = `${result.icon} ${result.category}`;
+    badge.style.background = `${result.color}15`;
+    badge.style.color = result.color;
+    badge.classList.remove('active');
+    void badge.offsetWidth;
+    badge.classList.add('active');
+}
+
+
+// ═══════════════════════════════════════════
+// ACTIVE PATROL GPS ENGINE
+// ═══════════════════════════════════════════
+function handlePatrolGPSUpdate(lat, lng) {
+    if (State.currentScreen !== 'Patrol') return;
+
+    State.currentLat = lat;
+    State.currentLng = lng;
+
+    if (!State.patrolWalkedPath) {
+        State.patrolWalkedPath = [];
+    }
+
+    const lastPt = State.patrolWalkedPath[State.patrolWalkedPath.length - 1];
+    if (!lastPt || lastPt[0] !== lat || lastPt[1] !== lng) {
+        State.patrolWalkedPath.push([lat, lng]);
+    }
+
+    updatePatrolMapMarkers();
+
+    // Distance check to active checkpoint
+    const currentZone = State.patrolPoints[State.currentZoneIdx];
+    if (currentZone && currentZone.lat && currentZone.lng) {
+        const dist = getVerifyDistance(lat, lng, currentZone.lat, currentZone.lng);
+        if (dist <= 50 && !currentZone.arrivalTime) {
+            currentZone.arrivalTime = formatTimeHM(new Date());
+            showToast(`${currentZone.location.split('(')[0]}에 도착하였습니다. (도착 완료)`, 'success');
+            renderPatrolProgressUI();
+            updatePatrolMapMarkers();
+        }
+    }
+}
+
+function getVerifyDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+        Math.cos(phi1) * Math.cos(phi2) *
+        Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+

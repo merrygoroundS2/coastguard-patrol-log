@@ -56,7 +56,7 @@
                 </div>
                 <form class="login-form" id="loginForm">
                     <div class="form-field">
-                        <label for="loginEmail">Email</label>
+                        <label for="loginEmail">아이디</label>
                         <input type="text" id="loginEmail" placeholder="아이디를 입력하세요" autocomplete="username">
                     </div>
                     <div class="form-field">
@@ -98,23 +98,51 @@
                     <div class="stat-card">
                         <span class="stat-label">이번 달 순찰</span>
                         <div class="stat-value-group">
-                            <span class="stat-number">18</span>
+                            <span class="stat-number" id="dashboardStatMonthlyCount">0</span>
                             <span class="stat-unit">회</span>
                         </div>
                     </div>
                     <div class="stat-card">
                         <span class="stat-label">총 순찰 시간</span>
                         <div class="stat-value-group">
-                            <span class="stat-number">42.5</span>
+                            <span class="stat-number" id="dashboardStatTotalHours">0</span>
                             <span class="stat-unit">시간</span>
                         </div>
                     </div>
                     <div class="stat-card">
                         <span class="stat-label">완료 일지</span>
                         <div class="stat-value-group">
-                            <span class="stat-number">16</span>
+                            <span class="stat-number" id="dashboardStatCompletedReports">0</span>
                             <span class="stat-unit">건</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- AI 순찰 요약 섹션 -->
+                <div class="ai-summary-section" id="aiSummarySection">
+                    <div class="ai-section-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">🤖</span>
+                            <span class="ai-badge-text">AI 분석</span>
+                        </div>
+                        <span class="ai-section-subtitle">오늘의 순찰 AI 요약</span>
+                    </div>
+                    <div class="ai-category-grid" id="aiCategoryGrid">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- AI 패턴 인사이트 섹션 -->
+                <div class="ai-insights-section" id="aiInsightsSection">
+                    <div class="ai-section-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">📊</span>
+                            <span class="ai-badge-text">AI 인사이트</span>
+                        </div>
+                        <span class="ai-section-subtitle">순찰 패턴 분석</span>
+                    </div>
+                    <div class="ai-insights-list" id="aiInsightsList">
+                        <!-- Rendered by JS -->
                     </div>
                 </div>
 
@@ -299,6 +327,7 @@
             <!-- Map Area -->
             <div class="patrol-map-container-premium">
                 <div id="patrolMap"></div>
+
                 <div class="patrol-map-legend">
                     <span class="legend-item completed"><span class="legend-dot"></span> 완료</span>
                     <span class="legend-item current"><span class="legend-dot"></span> 현재</span>
@@ -310,7 +339,10 @@
             <div class="patrol-progress-section">
                 <div class="progress-header">
                     <span>순찰 진행률</span>
-                    <span id="patrolProgressRatio">0/3 구역</span>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <span id="patrolProgressRatio" style="font-weight: 700;">0/3 구역</span>
+                        <span id="patrolEstimatedCompletion" style="font-size: 11px; color: var(--navy-300); margin-top: 2px;">예상 완료 시간: 계산 중...</span>
+                    </div>
                 </div>
                 <div class="progress-bar-container">
                     <div class="progress-bar-fill" id="patrolProgressBarFill" style="width: 0%;"></div>
@@ -319,9 +351,30 @@
 
             <!-- Patrol Zone List (scrollable area in middle) -->
             <div class="patrol-zone-list-container">
-                <h3 class="patrol-list-title">순찰 구역 목록</h3>
-                <div class="patrol-list-items" id="patrolListItems">
-                    <!-- Rendered dynamically by JS -->
+                <div class="patrol-list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <h3 class="patrol-list-title" style="margin: 0;">순찰 구역 목록</h3>
+                    <button type="button" id="btnPatrolAddZone" style="background: var(--navy-900); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: background-color 0.2s;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="12" height="12">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        구역 추가
+                    </button>
+                </div>
+                
+                <div class="patrol-zone-groups">
+                    <div class="patrol-zone-group">
+                        <h4 class="group-title" style="font-size: 12px; color: var(--navy-500); margin: 8px 0; font-weight: 600;">방문 완료 지점</h4>
+                        <div class="patrol-list-items" id="patrolListCompletedItems">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </div>
+                    <div class="patrol-zone-group" style="margin-top: 14px;">
+                        <h4 class="group-title" style="font-size: 12px; color: var(--navy-500); margin: 8px 0; font-weight: 600;">미방문 지점</h4>
+                        <div class="patrol-list-items" id="patrolListUpcomingItems">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -338,20 +391,27 @@
 
             <!-- Bottom Sheet Modal overlay -->
             <div class="memo-bottom-sheet" id="memoBottomSheet">
-                <div class="bottom-sheet-handle"></div>
+                <div class="bottom-sheet-handle" id="bottomSheetHandle"></div>
                 <div class="bottom-sheet-content">
                     <h3 class="sheet-title">특이사항 메모 입력</h3>
 
                     <div class="quick-tags-container" id="quickTags">
                         <button type="button" class="quick-tag" data-tag="이상 없음">이상 없음</button>
-                        <button type="button" class="quick-tag" data-tag="주취자">주취자</button>
-                        <button type="button" class="quick-tag" data-tag="불법주차">불법주차</button>
-                        <button type="button" class="quick-tag" data-tag="소음신고">소음신고</button>
-                        <button type="button" class="quick-tag" data-tag="기타">기타</button>
+                        <button type="button" class="quick-tag" data-tag="낚시객 안전계도 실시">안전계도</button>
+                        <button type="button" class="quick-tag" data-tag="방파제 테트라포드 균열 발견">위험요소 발견</button>
+                        <button type="button" class="quick-tag" data-tag="주민 소음 민원 대응 완료">민원 대응</button>
+                        <button type="button" class="quick-tag" data-tag="구명환 등 안전 시설 점검 완료">시설 점검</button>
+                        <button type="button" class="quick-tag" data-tag="금지구역 불법 낚시 단속 활동">단속 활동</button>
                     </div>
 
                     <div class="sheet-input-group">
                         <textarea id="sheetMemoInput" placeholder="특이사항을 입력하세요..."></textarea>
+                    </div>
+
+                    <!-- AI 실시간 분류 뱃지 -->
+                    <div class="ai-memo-classify" id="aiMemoClassify">
+                        <span class="ai-classify-label">🤖 AI 분류:</span>
+                        <span class="ai-classify-badge" id="aiClassifyBadge">입력 대기 중</span>
                     </div>
 
                     <button type="button" class="sheet-action-btn" id="btnSheetNextZone">다음 구역으로 이동</button>
@@ -396,6 +456,28 @@
                 <!-- Map replay -->
                 <div class="patrol-map-container">
                     <div id="patrolEndMap"></div>
+                </div>
+
+                <!-- AI 품질 점검 알림 -->
+                <div class="ai-quality-section" id="aiQualitySection">
+                    <!-- Rendered by JS -->
+                </div>
+
+                <!-- AI 자동 생성 순찰일지 -->
+                <div class="ai-report-section" id="aiReportSection">
+                    <div class="ai-report-header">
+                        <div class="ai-badge">
+                            <span class="ai-badge-icon">🤖</span>
+                            <span class="ai-badge-text">AI 작성</span>
+                        </div>
+                        <span class="ai-report-label">AI 자동 생성 순찰일지</span>
+                    </div>
+                    <div class="ai-report-content" id="aiReportContent">
+                        <div class="ai-typing-placeholder">AI가 순찰일지를 작성하고 있습니다...</div>
+                    </div>
+                    <div class="ai-classifications" id="aiClassifications">
+                        <!-- Rendered by JS -->
+                    </div>
                 </div>
 
                 <!-- Summary -->
@@ -504,6 +586,7 @@
             </div>
         </div>
 
+
     </div>
 
     <!-- Toast Container -->
@@ -570,6 +653,31 @@
             <div class="time-edit-footer">
                 <button class="time-edit-btn-cancel" id="btnTimeEditCancel">취소</button>
                 <button class="time-edit-btn-submit" id="btnTimeEditSubmit">수정 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         ZONE ADD POPUP (구역 추가 팝업)
+         ══════════════════════════════════════ -->
+    <div class="time-edit-overlay" id="zoneAddOverlay" style="z-index: 10000;">
+        <div class="time-edit-popup" style="max-width: 340px; width: 90%;">
+            <div class="time-edit-header" style="background: var(--navy-900); color: var(--white); padding: 16px; font-size: 15px; font-weight: 700; text-align: center; position: relative;">
+                <h3>순찰 구역 추가</h3>
+                <button type="button" class="close-btn" id="btnZoneAddCancel" style="position: absolute; right: 16px; top: 12px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <div class="time-edit-body" style="padding: 20px;">
+                <p style="font-size: 13px; color: var(--navy-300); margin-bottom: 16px; line-height: 1.4;">추가할 순찰 구역을 선택해 주세요. 현재 등록되지 않은 구역만 표시됩니다.</p>
+                <div class="time-edit-group" style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="font-size: 12px; font-weight: 600; color: var(--navy-900);">순찰 구역 선택</label>
+                    <select id="selectNewZone" style="width: 100%; padding: 10px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 14px; background-color: var(--card-bg); color: var(--navy-900); outline: none;">
+                        <!-- Options populated dynamically -->
+                    </select>
+                </div>
+            </div>
+            <div class="time-edit-footer" style="padding: 16px 20px; display: flex; gap: 10px; justify-content: flex-end; border-top: 1px solid var(--border-color);">
+                <button type="button" class="time-edit-btn-cancel" id="btnZoneAddClose" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 14px; cursor: pointer; border: 1px solid var(--border-color); background: white; color: var(--navy-900);">취소</button>
+                <button type="button" class="time-edit-btn-submit" id="btnZoneAddSubmit" style="flex: 1; padding: 10px; border-radius: 6px; font-size: 14px; background-color: var(--navy-900); color: white; border: none; cursor: pointer;">추가 완료</button>
             </div>
         </div>
     </div>
