@@ -132,13 +132,25 @@
     window.fetch = async function(resource, options) {
         let url = typeof resource === 'string' ? resource : resource.url;
         
-        if (url.startsWith('/api/') || url.startsWith('api/')) {
-            if (url.startsWith('api/')) {
-                url = '/' + url;
+        if (url.includes('/api/') || url.includes('api/')) {
+            let cleanPath = url;
+            if (url.includes('://')) {
+                try {
+                    cleanPath = new URL(url).pathname;
+                } catch (e) {
+                    const idx = url.indexOf('/api/');
+                    if (idx !== -1) cleanPath = url.substring(idx);
+                }
+            }
+            
+            if (cleanPath.includes('/api/')) {
+                cleanPath = cleanPath.substring(cleanPath.indexOf('/api/'));
+            } else if (cleanPath.startsWith('api/')) {
+                cleanPath = '/' + cleanPath;
             }
             
             if (forceMock) {
-                return mockFetch(url, options);
+                return mockFetch(cleanPath, options);
             }
             
             try {
@@ -147,7 +159,7 @@
             } catch (err) {
                 console.warn('Real server connection failed. Switched to local storage mock.', err);
                 forceMock = true;
-                return mockFetch(url, options);
+                return mockFetch(cleanPath, options);
             }
         }
         
