@@ -2730,7 +2730,7 @@ async function handleNextZoneTransition() {
         );
         
         if (!forceConfirm) {
-            showToast(`📍 ${zoneName} 반경 내로 이동해야 다음 구역으로 진행할 수 있습니다.`, 'warning');
+            showToast(`📍 ${zoneName} 반경 내로 이동해야 다음 구역으로 진행할 수 있습니다.`, 'success');
             return;
         }
         
