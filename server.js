@@ -179,8 +179,8 @@ app.put('/api/patrols/:id', (req, res) => {
         }
 
         const updates = req.body;
-        // 허용되는 필드만 업데이트 (날짜 편집 지원을 위해 date 추가)
-        const allowedFields = ['points', 'summary', 'status', 'members', 'course', 'coursePoints', 'date'];
+        // 허용되는 필드만 업데이트 (날짜 편집 지원을 위해 date 추가, GPS 트래킹을 위해 관련 필드 추가)
+        const allowedFields = ['points', 'summary', 'status', 'members', 'course', 'coursePoints', 'date', 'visitLog', 'gpsTrackPoints', 'gpsSummary'];
         allowedFields.forEach(field => {
             if (updates[field] !== undefined) {
                 patrols[idx][field] = updates[field];
@@ -458,7 +458,32 @@ function generateAIReport(patrol) {
         report += '. 특이사항 없음. ';
     }
 
-    report += `순찰 소요시간 약 ${patrol.summary?.totalTime || 0}분, 이상 없음.`;
+    // GPS 기반 시간대별 경로 요약 추가
+    const visitLog = patrol.visitLog || [];
+    if (visitLog.length > 0) {
+        const routeParts = [];
+        const seenCodes = new Set();
+        visitLog.forEach((entry, idx) => {
+            const key = `${entry.code}-${entry.arrivalTime}`;
+            if (!seenCodes.has(key)) {
+                seenCodes.add(key);
+                const name = (entry.locationName || '').split('(')[0].trim();
+                if (idx === 0) {
+                    routeParts.push(`${entry.arrivalTime} ${name} 출발`);
+                } else {
+                    routeParts.push(`${entry.arrivalTime} ${name} 도착`);
+                }
+            }
+        });
+        if (routeParts.length > 0) {
+            report += `[GPS 순찰 경로] ${routeParts.join(' → ')}. `;
+        }
+    } else if (patrol.gpsSummary) {
+        report += `[GPS 순찰 경로] ${patrol.gpsSummary}. `;
+    }
+
+    const distanceStr = patrol.summary?.totalDistance || 0;
+    report += `순찰 소요시간 약 ${patrol.summary?.totalTime || 0}분, 이동거리 약 ${distanceStr}km, 이상 없음.`;
 
     return report;
 }
