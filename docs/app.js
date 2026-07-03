@@ -237,7 +237,7 @@
             }
 
             const updates = body;
-            const allowedFields = ['points', 'summary', 'status', 'members', 'course', 'coursePoints', 'date'];
+            const allowedFields = ['points', 'summary', 'status', 'members', 'course', 'coursePoints', 'date', 'visitLog', 'gpsTrackPoints', 'gpsSummary'];
             allowedFields.forEach(field => {
                 if (updates[field] !== undefined) {
                     patrols[idx][field] = updates[field];
@@ -730,7 +730,32 @@
             report += '. 특이사항 없음. ';
         }
 
-        report += `순찰 소요시간 약 ${patrol.summary?.totalTime || 0}분, 이상 없음.`;
+        // GPS 기반 시간대별 경로 요약 추가
+        const visitLog = patrol.visitLog || [];
+        if (visitLog.length > 0) {
+            const routeParts = [];
+            const seenCodes = new Set();
+            visitLog.forEach((entry, idx) => {
+                const key = `${entry.code}-${entry.arrivalTime}`;
+                if (!seenCodes.has(key)) {
+                    seenCodes.add(key);
+                    const name = (entry.locationName || '').split('(')[0].trim();
+                    if (idx === 0) {
+                        routeParts.push(`${entry.arrivalTime} ${name} 출발`);
+                    } else {
+                        routeParts.push(`${entry.arrivalTime} ${name} 도착`);
+                    }
+                }
+            });
+            if (routeParts.length > 0) {
+                report += `[GPS 순찰 경로] ${routeParts.join(' → ')}. `;
+            }
+        } else if (patrol.gpsSummary) {
+            report += `[GPS 순찰 경로] ${patrol.gpsSummary}. `;
+        }
+
+        const distanceStr = patrol.summary?.totalDistance || 0;
+        report += `순찰 소요시간 약 ${patrol.summary?.totalTime || 0}분, 이동거리 약 ${distanceStr}km, 이상 없음.`;
 
         return report;
     }
@@ -1087,7 +1112,18 @@ const State = {
     // GPS Patrol Screen states
     patrolWalkedPath: [],
     patrolSimulated: false,
-    userLocationMarker: null
+    userLocationMarker: null,
+
+    // GPS Geofencing & Tracking
+    gpsTrackPoints: [],          // Full GPS history: [{lat, lng, timestamp}]
+    visitLog: [],                // Visit records: [{locationName, code, lat, lng, arrivalTime, departureTime, stayDuration}]
+    currentLocationName: '',     // Current geofence location name
+    isInsideGeofence: false,     // Whether user is inside any geofence
+    lastGeofenceZoneCode: null,  // Last geofence zone code entered
+    lastGeofenceEntryTime: null, // When the user entered the current geofence
+    patrolStartTime: null,       // Patrol start timestamp
+    geofenceCircles: [],         // Leaflet circle references for geofences
+    GEOFENCE_RADIUS: 100         // Geofence radius in meters
 };
 
 // ─── Demo Data ───
@@ -2094,9 +2130,9 @@ async function createPatrol() {
                     detail: mz.detail,
                     lat: mz.lat,
                     lng: mz.lng,
-                    arrivalTime: idx === 0 ? formatTimeHM(new Date()) : '', // Auto arrive at first zone
+                    arrivalTime: '', // GPS 지오펜스 진입 시 자동 설정됨
                     departureTime: '',
-                    memo: idx === 0 ? '내용을 입력해주세요' : '', // Mock initial memo for first zone
+                    memo: '', // GPS 도착 전에는 비어있음
                     completed: false
                 });
             });
@@ -2161,107 +2197,195 @@ function initPatrolMap() {
 function updatePatrolMapMarkers() {
     if (!State.patrolMap) return;
 
-    // Clear existing markers/polylines
+    // Clear existing markers/polylines/circles (but keep tile layer)
     State.patrolMap.eachLayer(layer => {
-        if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+        if (layer instanceof L.Marker || layer instanceof L.Polyline || layer instanceof L.Circle || layer instanceof L.CircleMarker) {
             State.patrolMap.removeLayer(layer);
         }
     });
+    State.userLocationMarker = null; // Reset reference since we cleared all
 
-    // Add course point markers with status-based colors
+    // Add geofence circles and course point markers
     const coords = [];
     State.patrolPoints.forEach((pt, idx) => {
         if (pt.lat && pt.lng) {
             let markerColor = '#cbd5e1'; // Upcoming (Gray)
+            let geofenceColor = '#94a3b8';
+            let isActive = idx === State.currentZoneIdx;
+            let isCompleted = pt.completed || idx < State.currentZoneIdx;
 
-            if (idx === State.currentZoneIdx) {
+            if (isActive) {
                 markerColor = '#ef4444'; // Active/Current (Red)
-            } else if (pt.completed || idx < State.currentZoneIdx) {
+                geofenceColor = '#ef4444';
+            } else if (isCompleted) {
                 markerColor = '#1e3a6e'; // Completed (Navy)
+                geofenceColor = '#1e3a6e';
             }
 
+            // Draw geofence radius circle
+            L.circle([pt.lat, pt.lng], {
+                radius: State.GEOFENCE_RADIUS,
+                color: geofenceColor,
+                fillColor: geofenceColor,
+                fillOpacity: isActive ? 0.08 : 0.04,
+                weight: isActive ? 2 : 1,
+                dashArray: isActive ? '' : '4, 4',
+                interactive: false
+            }).addTo(State.patrolMap);
+
+            // Create labeled marker with zone code
+            const code = pt.code || String.fromCharCode(65 + idx);
             const icon = L.divIcon({
                 className: 'custom-marker',
                 html: `<div style="
-                    width: 14px; height: 14px;
-                    border-radius: 50%;
-                    background: ${markerColor};
-                    border: 2px solid white;
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                "></div>`,
-                iconSize: [14, 14],
-                iconAnchor: [7, 7]
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">
+                    <div style="
+                        width: 24px; height: 24px;
+                        border-radius: 50%;
+                        background: ${markerColor};
+                        border: 2.5px solid white;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        font-weight: 800;
+                        color: white;
+                        font-family: -apple-system, sans-serif;
+                    ">${code}</div>
+                </div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
             });
 
-            L.marker([pt.lat, pt.lng], { icon }).addTo(State.patrolMap);
+            const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(State.patrolMap);
+            
+            // Add popup with zone details
+            const statusText = isCompleted ? '✅ 방문 완료' : isActive ? '📍 현재 구역' : '⏳ 예정';
+            const timeInfo = pt.arrivalTime ? `도착: ${pt.arrivalTime}` : '';
+            marker.bindPopup(`<b>${pt.location}</b><br>${statusText}<br>${timeInfo}`);
+
             coords.push([pt.lat, pt.lng]);
         }
     });
 
-    // Draw route polyline
+    // Draw planned route polyline (dashed)
     if (coords.length >= 2) {
         L.polyline(coords, {
             color: '#1e3a6e',
-            weight: 3,
-            opacity: 0.8,
-            dashArray: '8, 6'
+            weight: 2,
+            opacity: 0.4,
+            dashArray: '6, 8'
         }).addTo(State.patrolMap);
     }
 
     // Fit bounds
     if (coords.length > 0) {
         const bounds = L.latLngBounds(coords);
-        State.patrolMap.fitBounds(bounds.pad(0.3));
+        // Include user position in bounds if available
+        if (State.currentLat && State.currentLng) {
+            bounds.extend([State.currentLat, State.currentLng]);
+        }
+        State.patrolMap.fitBounds(bounds.pad(0.2));
     }
 
-    // Draw walked path
+    // Draw walked path (actual GPS trail)
     if (State.patrolWalkedPath && State.patrolWalkedPath.length >= 2) {
         L.polyline(State.patrolWalkedPath, {
-            color: '#2563eb', // Walked path polyline
-            weight: 5,
-            opacity: 0.85
+            color: '#2563eb',
+            weight: 4,
+            opacity: 0.85,
+            lineJoin: 'round',
+            lineCap: 'round'
         }).addTo(State.patrolMap);
     }
 
-    // Draw user position marker (Defaults to Korea Coast Guard Headquarters)
+    // Draw user position marker with pulse animation
     const userLat = State.currentLat || 37.394248;
     const userLng = State.currentLng || 126.639352;
-    if (State.userLocationMarker) {
-        State.userLocationMarker.setLatLng([userLat, userLng]);
-        if (!State.patrolMap.hasLayer(State.userLocationMarker)) {
-            State.userLocationMarker.addTo(State.patrolMap);
-        }
-    } else {
-        State.userLocationMarker = L.circleMarker([userLat, userLng], {
-            radius: 9,
-            fillColor: '#2563eb',
-            color: '#ffffff',
-            weight: 2,
-            fillOpacity: 1
-        }).addTo(State.patrolMap).bindPopup('<b>현재 나의 위치</b>');
-    }
+    
+    const pulseIcon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="position: relative;">
+            <div class="leaflet-marker-pulse" style="
+                width: 16px; height: 16px;
+                border-radius: 50%;
+                background: #2563eb;
+                border: 3px solid white;
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.5);
+            "></div>
+            <div style="
+                position: absolute;
+                top: -1px; left: -1px;
+                width: 18px; height: 18px;
+                border-radius: 50%;
+                border: 2px solid rgba(37, 99, 235, 0.3);
+                animation: markerPulse 2s ease-out infinite;
+            "></div>
+        </div>`,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11]
+    });
+
+    State.userLocationMarker = L.marker([userLat, userLng], { icon: pulseIcon, zIndexOffset: 1000 })
+        .addTo(State.patrolMap)
+        .bindPopup(`<b>현재 나의 위치</b><br>${State.currentLocationName || '위치 확인 중...'}`);
 }
 
 function startGPSTracking() {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation) {
+        updateGPSStatusBanner('off', 'GPS 미지원', '');
+        return;
+    }
 
     if (State.watchId) {
         navigator.geolocation.clearWatch(State.watchId);
     }
 
+    // Initialize GPS tracking state
     State.patrolWalkedPath = [];
     State.patrolSimulated = false;
+    State.gpsTrackPoints = [];
+    State.visitLog = [];
+    State.currentLocationName = '';
+    State.isInsideGeofence = false;
+    State.lastGeofenceZoneCode = null;
+    State.lastGeofenceEntryTime = null;
+    State.patrolStartTime = new Date();
+
+    updateGPSStatusBanner('weak', '위치 확인 중...', '');
 
     State.watchId = navigator.geolocation.watchPosition(
         (pos) => {
             const lat = pos.coords.latitude;
             const lng = pos.coords.longitude;
+            const accuracy = pos.coords.accuracy;
             State.currentLat = lat;
             State.currentLng = lng;
 
+            // Update GPS signal indicator
+            const signalStrength = accuracy < 30 ? 'strong' : accuracy < 100 ? 'weak' : 'off';
+            const signalDot = $('#gpsSignalDot');
+            if (signalDot) {
+                signalDot.className = 'gps-signal-dot' + (signalStrength === 'strong' ? '' : signalStrength === 'weak' ? ' weak' : ' off');
+            }
+
+            // Update coordinates display
+            const coordsEl = $('#gpsLocationCoords');
+            if (coordsEl) {
+                coordsEl.textContent = `${lat.toFixed(6)}°N, ${lng.toFixed(6)}°E`;
+            }
+
             handlePatrolGPSUpdate(lat, lng);
         },
-        (err) => console.warn('GPS 오류:', err),
+        (err) => {
+            console.warn('GPS 오류:', err);
+            updateGPSStatusBanner('off', 'GPS 신호 없음', '');
+        },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
 }
@@ -2288,8 +2412,13 @@ function renderPatrolProgressUI() {
         let statusClass = 'upcoming';
 
         if (isActive) {
-            statusTag = '현재';
-            statusClass = 'active';
+            if (pt.arrivalTime) {
+                statusTag = '현재';
+                statusClass = 'active';
+            } else {
+                statusTag = '📡 GPS 대기';
+                statusClass = 'active';
+            }
         } else if (isCompleted) {
             statusTag = '완료';
             statusClass = 'completed';
@@ -2384,6 +2513,35 @@ function renderPatrolProgressUI() {
         if ($('#btnSheetNextZone')) $('#btnSheetNextZone').textContent = '순찰 완료 및 종료';
     } else {
         if ($('#btnSheetNextZone')) $('#btnSheetNextZone').textContent = '다음 구역으로 이동';
+    }
+}
+
+// GPS 자동 전환 시 바텀시트를 현재 활성 구역에 맞게 갱신
+function updateBottomSheetForCurrentZone() {
+    const activeZone = State.patrolPoints[State.currentZoneIdx];
+    if (!activeZone) return;
+
+    // Update memo input
+    const memoInput = $('#sheetMemoInput');
+    if (memoInput) {
+        memoInput.value = activeZone.memo || '';
+    }
+
+    // Update quick tags active state
+    $$('#quickTags .quick-tag').forEach(btn => {
+        if (activeZone.memo === btn.dataset.tag) btn.classList.add('active');
+        else btn.classList.remove('active');
+    });
+
+    // Update button label
+    const total = State.patrolPoints.length;
+    const nextBtn = $('#btnSheetNextZone');
+    if (nextBtn) {
+        if (State.currentZoneIdx === total - 1) {
+            nextBtn.textContent = '순찰 완료 및 종료';
+        } else {
+            nextBtn.textContent = '다음 구역으로 이동';
+        }
     }
 }
 
@@ -2558,8 +2716,33 @@ async function handleNextZoneTransition() {
     const timeStr = formatTimeHM(now);
 
     const currentZone = State.patrolPoints[State.currentZoneIdx];
+    
+    // ─── GPS 도착 검증: 현재 구역에 GPS로 도착하지 않았으면 차단 ───
+    if (currentZone && !currentZone.arrivalTime) {
+        // GPS 기반 도착이 아직 확인되지 않음
+        const zoneName = (currentZone.location || '').split('(')[0] || '현재 구역';
+        
+        // 강제 진행 여부 확인 (GPS 신호가 약한 상황 등)
+        const forceConfirm = confirm(
+            `⚠️ GPS 위치 확인 미완료\n\n${zoneName}에 아직 도착하지 않은 것으로 감지됩니다.\n\n` +
+            `현재 구역 반경(${State.GEOFENCE_RADIUS}m) 내로 이동하시면 자동으로 도착 판정됩니다.\n\n` +
+            `그래도 강제로 다음 구역으로 이동하시겠습니까?\n(GPS 신호가 약한 경우에만 사용)`
+        );
+        
+        if (!forceConfirm) {
+            showToast(`📍 ${zoneName} 반경 내로 이동해야 다음 구역으로 진행할 수 있습니다.`, 'warning');
+            return;
+        }
+        
+        // 강제 진행 시 현재 시각으로 도착/출발 기록
+        currentZone.arrivalTime = timeStr;
+        showToast(`⚠️ ${zoneName} GPS 미확인 상태에서 강제 진행합니다.`, 'warning');
+    }
+    
     if (currentZone) {
-        currentZone.departureTime = timeStr;
+        if (!currentZone.departureTime) {
+            currentZone.departureTime = timeStr;
+        }
         currentZone.completed = true;
     }
 
@@ -2572,10 +2755,10 @@ async function handleNextZoneTransition() {
         return;
     }
 
-    // Initialize next zone
+    // 다음 구역 초기화 — arrivalTime은 설정하지 않음 (GPS 도착 시 자동 설정)
     const nextZone = State.patrolPoints[State.currentZoneIdx];
     if (nextZone) {
-        nextZone.arrivalTime = timeStr;
+        // arrivalTime은 GPS 지오펜스 진입 시 자동으로 설정됨
         if (!nextZone.memo) {
             nextZone.memo = '이상 없음'; // Default memo
         }
@@ -2583,12 +2766,25 @@ async function handleNextZoneTransition() {
 
     renderPatrolProgressUI();
     updatePatrolMapMarkers();
-    showToast(`${currentZone ? currentZone.location.split('(')[0] : '구역'} 순찰 완료. 다음 구역으로 이동합니다.`, 'success');
+    
+    const nextName = nextZone ? nextZone.location.split('(')[0] : '다음 구역';
+    showToast(`${currentZone ? currentZone.location.split('(')[0] : '구역'} 순찰 완료 → ${nextName}(으)로 이동하세요.`, 'success');
 
     savePatrolToServer();
 }
 
 async function endPatrol() {
+    // Stop GPS tracking
+    if (State.watchId) {
+        navigator.geolocation.clearWatch(State.watchId);
+        State.watchId = null;
+    }
+
+    // Record departure from current geofence if still inside
+    if (State.isInsideGeofence && State.lastGeofenceZoneCode) {
+        recordGeofenceDeparture(formatTimeHM(new Date()));
+    }
+
     if (State.currentPatrol) {
         // Calculate summary
         const times = State.patrolPoints
@@ -2606,15 +2802,30 @@ async function endPatrol() {
             totalMinutes = (last - first) / 60000;
         }
 
+        // Calculate GPS-based total distance
+        let gpsDistance = 0;
+        const trackPts = State.gpsTrackPoints || [];
+        for (let i = 1; i < trackPts.length; i++) {
+            gpsDistance += getVerifyDistance(
+                trackPts[i - 1].lat, trackPts[i - 1].lng,
+                trackPts[i].lat, trackPts[i].lng
+            );
+        }
+
         State.currentPatrol.points = State.patrolPoints;
         const visitedPoints = State.patrolPoints.filter(pt => pt.arrivalTime);
         State.currentPatrol.summary = {
-            totalDistance: visitedPoints.length,
-            totalTime: Math.round(totalMinutes) || Math.floor(State.elapsedSeconds / 60) || 2, // fallback to active timer duration or 2 min
+            totalDistance: gpsDistance > 0 ? parseFloat((gpsDistance / 1000).toFixed(1)) : visitedPoints.length,
+            totalTime: Math.round(totalMinutes) || Math.floor(State.elapsedSeconds / 60) || 2,
             patrolMethod: '도보 및 차량',
             patrolCount: `${visitedPoints.length}곳`
         };
         State.currentPatrol.status = 'completed';
+
+        // Include GPS tracking data in patrol record
+        State.currentPatrol.visitLog = State.visitLog || [];
+        State.currentPatrol.gpsTrackPoints = State.gpsTrackPoints || [];
+        State.currentPatrol.gpsSummary = generateGPSPatrolSummary();
 
         await savePatrolToServer();
     }
@@ -2637,7 +2848,10 @@ async function savePatrolToServer() {
                 status: State.currentPatrol.status,
                 date: State.currentPatrol.date,
                 members: State.currentPatrol.members,
-                course: State.currentPatrol.course
+                course: State.currentPatrol.course,
+                visitLog: State.currentPatrol.visitLog || State.visitLog || [],
+                gpsTrackPoints: State.currentPatrol.gpsTrackPoints || State.gpsTrackPoints || [],
+                gpsSummary: State.currentPatrol.gpsSummary || generateGPSPatrolSummary()
             })
         });
     } catch (err) {
@@ -2685,7 +2899,10 @@ async function renderPatrolEnd() {
     renderPatrolEndSummary();
     renderPatrolEndTimeline();
 
-    // 4.5. AI 섹션 렌더링
+    // 4.5. GPS Route Summary
+    renderGPSRouteSummary();
+
+    // 4.6. AI 섹션 렌더링
     renderAIPatrolEndSections();
 
     // 5. Init map (100ms 뒤에 안전하게 렌더링)
@@ -2706,32 +2923,75 @@ async function renderPatrolEnd() {
             maxZoom: 19
         }).addTo(State.patrolEndMap);
 
-        // Add markers and route
+        // Add geofence circles and labeled markers
         const coords = [];
-        State.patrolPoints.forEach((pt) => {
+        State.patrolPoints.forEach((pt, idx) => {
             if (pt.lat && pt.lng) {
+                const code = pt.code || String.fromCharCode(65 + idx);
+                const isVisited = !!pt.arrivalTime;
+                const markerColor = isVisited ? '#1e3a6e' : '#cbd5e1';
+
+                // Geofence circle
+                L.circle([pt.lat, pt.lng], {
+                    radius: State.GEOFENCE_RADIUS || 100,
+                    color: markerColor,
+                    fillColor: markerColor,
+                    fillOpacity: 0.05,
+                    weight: 1,
+                    dashArray: '4, 4',
+                    interactive: false
+                }).addTo(State.patrolEndMap);
+
                 const icon = L.divIcon({
                     className: 'custom-marker',
                     html: `<div style="
-                        width: 12px; height: 12px;
+                        width: 22px; height: 22px;
                         border-radius: 50%;
-                        background: #c62828;
+                        background: ${markerColor};
                         border: 2px solid white;
                         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                    "></div>`,
-                    iconSize: [12, 12],
-                    iconAnchor: [6, 6]
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 9px;
+                        font-weight: 800;
+                        color: white;
+                        font-family: -apple-system, sans-serif;
+                    ">${code}</div>`,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
                 });
-                L.marker([pt.lat, pt.lng], { icon }).addTo(State.patrolEndMap);
+                const marker = L.marker([pt.lat, pt.lng], { icon }).addTo(State.patrolEndMap);
+                const timeInfo = pt.arrivalTime ? `${pt.arrivalTime}${pt.departureTime ? ' ~ ' + pt.departureTime : ''}` : '미방문';
+                marker.bindPopup(`<b>${pt.location}</b><br>${timeInfo}`);
                 coords.push([pt.lat, pt.lng]);
             }
         });
 
-        if (coords.length >= 2) {
+        // Draw walked path (GPS trail) if available
+        const walkedPath = State.currentPatrol?.gpsTrackPoints || State.patrolWalkedPath || [];
+        if (walkedPath.length >= 2) {
+            const walkedCoords = walkedPath.map(p => p.lat ? [p.lat, p.lng] : p);
+            L.polyline(walkedCoords, {
+                color: '#2563eb',
+                weight: 4,
+                opacity: 0.8,
+                lineJoin: 'round',
+                lineCap: 'round'
+            }).addTo(State.patrolEndMap);
+
+            // Extend bounds to include walked path
+            const allCoords = [...coords, ...walkedCoords];
+            if (allCoords.length > 0) {
+                State.patrolEndMap.fitBounds(L.latLngBounds(allCoords).pad(0.2));
+            }
+        } else if (coords.length >= 2) {
+            // Fallback: draw planned route
             L.polyline(coords, {
-                color: '#c62828',
-                weight: 3,
-                opacity: 0.8
+                color: '#1e3a6e',
+                weight: 2,
+                opacity: 0.6,
+                dashArray: '6, 8'
             }).addTo(State.patrolEndMap);
             State.patrolEndMap.fitBounds(L.latLngBounds(coords).pad(0.3));
         }
@@ -2989,9 +3249,24 @@ function renderReport() {
         }
     }
 
-    // Places
-    const visitedPlaces = State.patrolPoints.filter(pt => pt.arrivalTime).map(pt => pt.location);
-    $('#reportPlaces').textContent = visitedPlaces.length > 0 ? visitedPlaces.join('→') : '방문 구역 없음';
+    // Places — prefer GPS visit log order when available
+    const visitLog = patrol.visitLog || State.visitLog || [];
+    let placesText = '';
+    if (visitLog.length > 0) {
+        const visitedNames = [];
+        const seenCodes = new Set();
+        visitLog.forEach(v => {
+            if (!seenCodes.has(v.code)) {
+                seenCodes.add(v.code);
+                visitedNames.push(v.locationName.split('(')[0].trim());
+            }
+        });
+        placesText = visitedNames.join('→');
+    } else {
+        const visitedPlaces = State.patrolPoints.filter(pt => pt.arrivalTime).map(pt => pt.location);
+        placesText = visitedPlaces.length > 0 ? visitedPlaces.join('→') : '방문 구역 없음';
+    }
+    $('#reportPlaces').textContent = placesText;
 
     // Bind edit places (course) click
     const placesField = $('#reportPlaces').parentElement.parentElement;
@@ -4052,8 +4327,9 @@ function updateAIClassifyFromTag(tagText) {
 
 
 // ═══════════════════════════════════════════
-// ACTIVE PATROL GPS ENGINE
+// ACTIVE PATROL GPS ENGINE — GEOFENCING SYSTEM
 // ═══════════════════════════════════════════
+
 function handlePatrolGPSUpdate(lat, lng) {
     if (State.currentScreen !== 'Patrol') return;
 
@@ -4064,23 +4340,398 @@ function handlePatrolGPSUpdate(lat, lng) {
         State.patrolWalkedPath = [];
     }
 
-    const lastPt = State.patrolWalkedPath[State.patrolWalkedPath.length - 1];
-    if (!lastPt || lastPt[0] !== lat || lastPt[1] !== lng) {
-        State.patrolWalkedPath.push([lat, lng]);
+    // Throttle GPS track point storage: only store if moved 10m+ or 5s+ elapsed
+    const now = Date.now();
+    const lastTrack = State.gpsTrackPoints[State.gpsTrackPoints.length - 1];
+    let shouldStore = false;
+
+    if (!lastTrack) {
+        shouldStore = true;
+    } else {
+        const timeDiff = now - lastTrack.timestamp;
+        const distDiff = getVerifyDistance(lat, lng, lastTrack.lat, lastTrack.lng);
+        if (timeDiff >= 5000 || distDiff >= 10) {
+            shouldStore = true;
+        }
+    }
+
+    if (shouldStore) {
+        State.gpsTrackPoints.push({ lat, lng, timestamp: now });
+        // Also add to walked path for polyline
+        const lastPt = State.patrolWalkedPath[State.patrolWalkedPath.length - 1];
+        if (!lastPt || lastPt[0] !== lat || lastPt[1] !== lng) {
+            State.patrolWalkedPath.push([lat, lng]);
+        }
+    }
+
+    // ─── GEOFENCING: Check ALL registered zones ───
+    let closestZone = null;
+    let closestDist = Infinity;
+    let insideAnyGeofence = false;
+
+    // Check all patrol points (registered zones for this patrol)
+    const allZonesToCheck = State.patrolPoints;
+
+    allZonesToCheck.forEach(zone => {
+        if (!zone.lat || !zone.lng) return;
+        const dist = getVerifyDistance(lat, lng, zone.lat, zone.lng);
+        if (dist < closestDist) {
+            closestDist = dist;
+            closestZone = zone;
+        }
+        if (dist <= State.GEOFENCE_RADIUS) {
+            insideAnyGeofence = true;
+        }
+    });
+
+    // ─── Geofence Enter/Exit Detection ───
+    const timeStr = formatTimeHM(new Date());
+    
+    if (insideAnyGeofence && closestZone && closestDist <= State.GEOFENCE_RADIUS) {
+        const zoneCode = closestZone.code;
+        const zoneName = closestZone.location || closestZone.name || zoneCode;
+
+        if (!State.isInsideGeofence || State.lastGeofenceZoneCode !== zoneCode) {
+            // ── ENTERED a new geofence zone ──
+            
+            // If we were in another zone, record departure from previous
+            if (State.isInsideGeofence && State.lastGeofenceZoneCode && State.lastGeofenceZoneCode !== zoneCode) {
+                recordGeofenceDeparture(timeStr);
+            }
+
+            // Check re-visit cooldown (5 min)
+            const lastVisitToThisZone = [...State.visitLog].reverse().find(v => v.code === zoneCode);
+            const canRecord = !lastVisitToThisZone || 
+                (now - new Date(lastVisitToThisZone.arrivalTimestamp).getTime() > 5 * 60 * 1000);
+
+            if (canRecord) {
+                // Record arrival in visit log
+                State.visitLog.push({
+                    locationName: zoneName,
+                    code: zoneCode,
+                    lat: closestZone.lat,
+                    lng: closestZone.lng,
+                    arrivalTime: timeStr,
+                    arrivalTimestamp: new Date().toISOString(),
+                    departureTime: null,
+                    departureTimestamp: null,
+                    stayDuration: null,
+                    type: 'arrival'
+                });
+
+                // Auto-mark patrol point as arrived if it hasn't been
+                const patrolPt = State.patrolPoints.find(pt => pt.code === zoneCode);
+                if (patrolPt && !patrolPt.arrivalTime) {
+                    patrolPt.arrivalTime = timeStr;
+                }
+
+                // ─── 핵심: GPS 기반 자동 구역 전환 ───
+                // 진입한 구역의 인덱스를 찾아서 currentZoneIdx를 적절히 전환
+                const enteredZoneIdx = State.patrolPoints.findIndex(pt => pt.code === zoneCode);
+                
+                if (enteredZoneIdx >= 0) {
+                    const currentIdx = State.currentZoneIdx;
+                    
+                    if (enteredZoneIdx === currentIdx) {
+                        // 현재 활성 구역에 도착 — 도착만 기록 (사용자가 메모 입력 후 다음으로)
+                        showToast(`📍 ${zoneName.split('(')[0]}에 도착하였습니다 (${timeStr})`, 'success');
+                    } else if (enteredZoneIdx > currentIdx) {
+                        // 다음 구역(또는 그 이후 구역)에 도착 — 이전 구역들을 자동 완료 처리
+                        for (let i = currentIdx; i < enteredZoneIdx; i++) {
+                            const skippedZone = State.patrolPoints[i];
+                            if (skippedZone && !skippedZone.completed) {
+                                if (!skippedZone.arrivalTime) skippedZone.arrivalTime = timeStr;
+                                if (!skippedZone.departureTime) skippedZone.departureTime = timeStr;
+                                skippedZone.completed = true;
+                            }
+                        }
+                        State.currentZoneIdx = enteredZoneIdx;
+                        showToast(`📍 ${zoneName.split('(')[0]}에 도착하였습니다 — 자동 전환 (${timeStr})`, 'success');
+                    } else {
+                        // 이미 지나온 구역에 재진입 — 재방문 기록만 남김
+                        showToast(`🔄 ${zoneName.split('(')[0]} 재방문 (${timeStr})`, 'info');
+                    }
+                } else {
+                    showToast(`📍 ${zoneName.split('(')[0]}에 진입하였습니다 (${timeStr})`, 'success');
+                }
+
+                renderVisitLogTimeline();
+                renderPatrolProgressUI();
+                updateBottomSheetForCurrentZone();
+            }
+
+            State.lastGeofenceZoneCode = zoneCode;
+            State.lastGeofenceEntryTime = now;
+            State.currentLocationName = zoneName.split('(')[0];
+        }
+
+        State.isInsideGeofence = true;
+        updateGPSStatusBanner('strong', State.currentLocationName, 'inside');
+    } else {
+        // Outside all geofences
+        if (State.isInsideGeofence && State.lastGeofenceZoneCode) {
+            // ── EXITED the geofence zone ──
+            recordGeofenceDeparture(timeStr);
+            State.currentLocationName = '';
+        }
+
+        State.isInsideGeofence = false;
+        State.lastGeofenceZoneCode = null;
+
+        // Show nearest zone info
+        if (closestZone) {
+            const nearName = (closestZone.location || closestZone.name || '').split('(')[0];
+            const distKm = closestDist >= 1000 ? `${(closestDist / 1000).toFixed(1)}km` : `${Math.round(closestDist)}m`;
+            updateGPSStatusBanner('strong', `${nearName} 방향 이동 중 (${distKm})`, 'moving');
+        } else {
+            updateGPSStatusBanner('strong', '순찰 구역 외 이동 중', 'outside');
+        }
     }
 
     updatePatrolMapMarkers();
+}
 
-    // Distance check to active checkpoint
-    const currentZone = State.patrolPoints[State.currentZoneIdx];
-    if (currentZone && currentZone.lat && currentZone.lng) {
-        const dist = getVerifyDistance(lat, lng, currentZone.lat, currentZone.lng);
-        if (dist <= 50 && !currentZone.arrivalTime) {
-            currentZone.arrivalTime = formatTimeHM(new Date());
-            showToast(`${currentZone.location.split('(')[0]}에 도착하였습니다. (도착 완료)`, 'success');
-            renderPatrolProgressUI();
-            updatePatrolMapMarkers();
+function recordGeofenceDeparture(timeStr) {
+    // Find the last visit log entry for the departing zone
+    const lastEntry = [...State.visitLog].reverse().find(
+        v => v.code === State.lastGeofenceZoneCode && !v.departureTime
+    );
+    
+    if (lastEntry) {
+        lastEntry.departureTime = timeStr;
+        lastEntry.departureTimestamp = new Date().toISOString();
+        
+        // Calculate stay duration
+        if (State.lastGeofenceEntryTime) {
+            const stayMs = Date.now() - State.lastGeofenceEntryTime;
+            lastEntry.stayDuration = Math.round(stayMs / 1000); // in seconds
         }
+    }
+
+    // Also update patrol point departure time
+    const patrolPt = State.patrolPoints.find(pt => pt.code === State.lastGeofenceZoneCode);
+    if (patrolPt && patrolPt.arrivalTime && !patrolPt.departureTime) {
+        patrolPt.departureTime = timeStr;
+    }
+
+    const departureName = (patrolPt ? patrolPt.location : State.lastGeofenceZoneCode || '').split('(')[0];
+    showToast(`🚶 ${departureName}에서 이탈하였습니다 (${timeStr})`, 'info');
+    renderVisitLogTimeline();
+}
+
+// ═══════════════════════════════════════════
+// GPS UI HELPER FUNCTIONS
+// ═══════════════════════════════════════════
+
+function updateGPSStatusBanner(signal, locationName, geofenceState) {
+    const signalDot = $('#gpsSignalDot');
+    const signalLabel = $('#gpsSignalLabel');
+    const locationEl = $('#gpsLocationName');
+    const badge = $('#gpsGeofenceBadge');
+
+    if (signalDot) {
+        signalDot.className = 'gps-signal-dot' + (signal === 'strong' ? '' : signal === 'weak' ? ' weak' : ' off');
+    }
+    if (signalLabel) {
+        signalLabel.textContent = signal === 'strong' ? 'GPS' : signal === 'weak' ? '탐색' : '끊김';
+    }
+    if (locationEl) {
+        locationEl.innerHTML = `<span class="location-icon">📍</span> ${locationName || '위치 확인 중...'}`;
+    }
+    if (badge) {
+        badge.className = 'gps-geofence-badge ' + (geofenceState || 'outside');
+        if (geofenceState === 'inside') {
+            badge.textContent = '구역 내';
+        } else if (geofenceState === 'moving') {
+            badge.textContent = '이동 중';
+        } else {
+            badge.textContent = '탐색 중';
+        }
+    }
+}
+
+function renderVisitLogTimeline() {
+    const timeline = $('#visitLogTimeline');
+    const countEl = $('#visitLogCount');
+    if (!timeline) return;
+
+    const log = State.visitLog || [];
+    
+    if (countEl) {
+        countEl.textContent = `${log.length}건`;
+    }
+
+    if (log.length === 0) {
+        timeline.innerHTML = '<div class="visit-log-empty">순찰을 시작하면 방문 기록이 표시됩니다.</div>';
+        return;
+    }
+
+    let html = '';
+    // Show in reverse order (newest first)
+    [...log].reverse().forEach((entry, idx) => {
+        const isLatest = idx === 0;
+        const hasDeparted = !!entry.departureTime;
+        const dotClass = isLatest && !hasDeparted ? 'current' : hasDeparted ? 'departed' : 'arrived';
+        
+        let badgeHtml = '';
+        if (isLatest && !hasDeparted) {
+            badgeHtml = '<span class="visit-log-badge staying">체류 중</span>';
+        } else if (hasDeparted) {
+            const stayText = entry.stayDuration ? formatStayDuration(entry.stayDuration) : '';
+            badgeHtml = `<span class="visit-log-badge departure">출발${stayText ? ' · ' + stayText : ''}</span>`;
+        } else {
+            badgeHtml = '<span class="visit-log-badge arrival">도착</span>';
+        }
+
+        const timeText = hasDeparted ? 
+            `${entry.arrivalTime} → ${entry.departureTime}` : 
+            `${entry.arrivalTime} ~`;
+
+        html += `
+            <div class="visit-log-item">
+                <div class="visit-log-dot ${dotClass}"></div>
+                <div class="visit-log-content">
+                    <div class="visit-log-location">${escapeHtml(entry.locationName.split('(')[0])}</div>
+                    <div class="visit-log-time">${timeText}</div>
+                </div>
+                ${badgeHtml}
+            </div>
+        `;
+    });
+
+    timeline.innerHTML = html;
+    // Auto-scroll to top (newest entry)
+    timeline.scrollTop = 0;
+}
+
+function formatStayDuration(seconds) {
+    if (seconds < 60) return `${seconds}초`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins < 60) return `${mins}분${secs > 0 ? ' ' + secs + '초' : ''}`;
+    const hrs = Math.floor(mins / 60);
+    const remainMins = mins % 60;
+    return `${hrs}시간 ${remainMins}분`;
+}
+
+// ═══════════════════════════════════════════
+// GPS PATROL SUMMARY GENERATION
+// ═══════════════════════════════════════════
+
+function generateGPSPatrolSummary() {
+    const log = State.visitLog || [];
+    if (log.length === 0) return '';
+
+    // Group by unique visits (arrival records)
+    const visitEntries = [];
+    const seen = new Set();
+
+    log.forEach(entry => {
+        const key = `${entry.code}-${entry.arrivalTime}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            visitEntries.push(entry);
+        }
+    });
+
+    if (visitEntries.length === 0) return '';
+
+    // Build summary string: "09:47 본청 출발 → 09:55 A구역 도착 → 10:03 B구역 점검"
+    const parts = [];
+    visitEntries.forEach((entry, idx) => {
+        const name = entry.locationName.split('(')[0].trim();
+        if (idx === 0) {
+            parts.push(`${entry.arrivalTime} ${name} 출발`);
+        } else {
+            parts.push(`${entry.arrivalTime} ${name} 도착`);
+        }
+        if (entry.departureTime && idx < visitEntries.length - 1) {
+            parts.push(`${entry.departureTime} ${name} 출발`);
+        }
+    });
+
+    return parts.join(' → ');
+}
+
+function generateGPSPatrolSummaryHTML() {
+    const log = State.visitLog || [];
+    if (log.length === 0) return '<span style="color: #64748b;">GPS 경로 데이터 없음</span>';
+
+    const parts = [];
+    const visitEntries = [];
+    const seen = new Set();
+
+    log.forEach(entry => {
+        const key = `${entry.code}-${entry.arrivalTime}`;
+        if (!seen.has(key)) {
+            seen.add(key);
+            visitEntries.push(entry);
+        }
+    });
+
+    visitEntries.forEach((entry, idx) => {
+        const name = entry.locationName.split('(')[0].trim();
+        if (idx > 0) {
+            parts.push('<span class="route-arrow">→</span>');
+        }
+        const action = idx === 0 ? '출발' : '도착';
+        parts.push(`<span class="route-time">${entry.arrivalTime}</span> <span class="route-place">${escapeHtml(name)}</span> ${action}`);
+    });
+
+    return parts.join(' ');
+}
+
+function renderGPSRouteSummary() {
+    const textEl = $('#gpsRouteSummaryText');
+    const statsEl = $('#gpsStatsRow');
+    if (!textEl) return;
+
+    const log = State.visitLog || [];
+    const trackPoints = State.gpsTrackPoints || [];
+
+    if (log.length === 0) {
+        textEl.innerHTML = '<span style="color: #64748b;">GPS 경로 데이터가 없습니다.</span>';
+        if (statsEl) statsEl.innerHTML = '';
+        return;
+    }
+
+    // Render summary text
+    textEl.innerHTML = generateGPSPatrolSummaryHTML();
+
+    // Calculate stats
+    const totalVisits = new Set(log.map(e => e.code)).size;
+    
+    let totalDistance = 0;
+    for (let i = 1; i < trackPoints.length; i++) {
+        totalDistance += getVerifyDistance(
+            trackPoints[i - 1].lat, trackPoints[i - 1].lng,
+            trackPoints[i].lat, trackPoints[i].lng
+        );
+    }
+    const distKm = (totalDistance / 1000).toFixed(1);
+
+    const totalStayTime = log.reduce((sum, e) => sum + (e.stayDuration || 0), 0);
+    const stayMins = Math.round(totalStayTime / 60);
+
+    if (statsEl) {
+        statsEl.innerHTML = `
+            <div class="gps-stat-chip">
+                <span class="stat-val">${totalVisits}</span>
+                <span class="stat-lbl">방문 지점</span>
+            </div>
+            <div class="gps-stat-chip">
+                <span class="stat-val">${distKm}km</span>
+                <span class="stat-lbl">이동 거리</span>
+            </div>
+            <div class="gps-stat-chip">
+                <span class="stat-val">${stayMins}분</span>
+                <span class="stat-lbl">체류 시간</span>
+            </div>
+            <div class="gps-stat-chip">
+                <span class="stat-val">${trackPoints.length}</span>
+                <span class="stat-lbl">GPS 포인트</span>
+            </div>
+        `;
     }
 }
 

@@ -324,8 +324,23 @@
                 </div>
             </header>
 
+            <!-- GPS Status Banner -->
+            <div class="gps-status-banner" id="gpsStatusBanner">
+                <div class="gps-status-indicator">
+                    <div class="gps-signal-dot" id="gpsSignalDot"></div>
+                    <span class="gps-signal-label" id="gpsSignalLabel">GPS</span>
+                </div>
+                <div class="gps-current-location">
+                    <div class="gps-location-name" id="gpsLocationName">
+                        <span class="location-icon">📍</span> 위치 확인 중...
+                    </div>
+                    <div class="gps-location-coords" id="gpsLocationCoords">---.------°N, ---.------°E</div>
+                </div>
+                <span class="gps-geofence-badge outside" id="gpsGeofenceBadge">탐색 중</span>
+            </div>
+
             <!-- Map Area -->
-            <div class="patrol-map-container-premium">
+            <div class="patrol-map-container-premium map-focused">
                 <div id="patrolMap"></div>
 
                 <div class="patrol-map-legend">
@@ -334,6 +349,18 @@
                     <span class="legend-item upcoming"><span class="legend-dot"></span> 예정</span>
                 </div>
             </div>
+
+            <!-- Real-time Visit Log -->
+            <div class="gps-visit-log-section" id="gpsVisitLogSection">
+                <div class="visit-log-header">
+                    <h4><span class="log-icon">🗂️</span> 실시간 방문 기록</h4>
+                    <span class="visit-log-count" id="visitLogCount">0건</span>
+                </div>
+                <div class="visit-log-timeline" id="visitLogTimeline">
+                    <div class="visit-log-empty">순찰을 시작하면 방문 기록이 표시됩니다.</div>
+                </div>
+            </div>
+
 
             <!-- Patrol Progress -->
             <div class="patrol-progress-section">
@@ -465,6 +492,19 @@
                 <!-- Map replay -->
                 <div class="patrol-map-container">
                     <div id="patrolEndMap"></div>
+                </div>
+
+                <!-- GPS Route Summary -->
+                <div class="gps-route-summary" id="gpsRouteSummary">
+                    <div class="gps-route-summary-header">
+                        <span class="gps-icon">📡</span> GPS 순찰 경로 요약
+                    </div>
+                    <div class="gps-route-summary-text" id="gpsRouteSummaryText">
+                        GPS 데이터를 분석하고 있습니다...
+                    </div>
+                    <div class="gps-stats-row" id="gpsStatsRow">
+                        <!-- Rendered by JS -->
+                    </div>
                 </div>
 
                 <!-- AI 품질 점검 알림 -->
