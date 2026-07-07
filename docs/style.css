@@ -1785,6 +1785,11 @@ button {
     color: var(--white);
 }
 
+.toast.warning {
+    background: #f59e0b; /* Amber/Orange warning background */
+    color: var(--white);
+}
+
 .toast.fade-out {
     animation: toastOut 0.3s ease forwards;
 }
