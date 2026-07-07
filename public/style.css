@@ -970,8 +970,6 @@ button {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 340px; /* Spacer for bottom sheet */
-    display: flex;
-    flex-direction: column;
 }
 
 .patrol-header {
