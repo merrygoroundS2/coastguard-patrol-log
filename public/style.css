@@ -960,8 +960,18 @@ button {
 .screen-patrol.active {
     height: 100vh;
     height: 100dvh;
+    overflow: hidden;
+    position: relative;
+}
+
+.patrol-scrollable-content {
+    width: 100%;
+    height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 340px; /* Spacer for bottom sheet */
+    display: flex;
+    flex-direction: column;
 }
 
 .patrol-header {
@@ -2746,10 +2756,9 @@ button {
 
 /* Patrol list items */
 .patrol-zone-list-container {
-    flex: 1;
-    padding: 16px 16px 330px 16px !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
+    flex: none;
+    padding: 16px 16px 20px 16px;
+    overflow: visible;
 }
 
 .patrol-list-title {
