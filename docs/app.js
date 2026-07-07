@@ -2181,6 +2181,39 @@ function initPatrolMap() {
         attributionControl: false
     });
 
+    // --- Temporary Visual Diagnostics Banner ---
+    setTimeout(() => {
+        const container = document.querySelector('.patrol-map-container-premium');
+        const mapEl = document.getElementById('patrolMap');
+        const scrollable = document.querySelector('.patrol-scrollable-content');
+        
+        let msg = '';
+        if (!container) msg += 'Container not found! ';
+        else msg += `Container: h=${container.offsetHeight}px (vis=${window.getComputedStyle(container).visibility}, disp=${window.getComputedStyle(container).display}) `;
+        
+        if (!mapEl) msg += 'Map element not found! ';
+        else msg += `Map: h=${mapEl.offsetHeight}px `;
+        
+        if (!scrollable) msg += 'Scrollable not found! ';
+        else msg += `Scrollable: h=${scrollable.offsetHeight}px `;
+        
+        const diag = document.createElement('div');
+        diag.id = 'orcaDiagBanner';
+        diag.style.position = 'fixed';
+        diag.style.top = '0';
+        diag.style.left = '0';
+        diag.style.right = '0';
+        diag.style.background = 'rgba(0,0,0,0.85)';
+        diag.style.color = '#00ff00';
+        diag.style.padding = '8px';
+        diag.style.fontSize = '11px';
+        diag.style.zIndex = '999999';
+        diag.style.wordBreak = 'break-all';
+        diag.style.fontFamily = 'monospace';
+        diag.innerHTML = `⚠️ DIAG: ${msg}`;
+        document.body.appendChild(diag);
+    }, 1500);
+
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
     }).addTo(State.patrolMap);
